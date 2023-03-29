@@ -1,0 +1,14 @@
+<launch>
+    <!-- 启动二维地图 -->
+    <node pkg="topp2" type="topp_2d_map_creater" name="topp_map_creater_node" output="screen">
+        <param name="obstacle_num" value="50" />
+        <param name="obstacle_h" value="10" />
+        <param name="obstacle_w" value="10" />
+        <param name="map_size_w" value="10" /> <!-- meters -->
+        <param name="map_size_h" value="10" />
+    </node>
+
+    <!-- <node pkg="rviz" type="rviz" name="$(anon rviz)" respawn="false" output="screen" args="-d $(find navi_algorithm)/rviz/2d_map_graph.rviz"/> -->
+
+
+</launch>
