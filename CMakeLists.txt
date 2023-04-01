@@ -26,7 +26,7 @@ set(QPOASES_INLUDE_DIRS /usr/local/include/qpOASES)
 find_package(Eigen3 REQUIRED)
 catkin_package(
  INCLUDE_DIRS include
-#  LIBRARIES topp2
+ LIBRARIES topp2
 #  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy std_msgs
 #  DEPENDS system_lib
 )
@@ -94,7 +94,7 @@ add_dependencies(publish_map_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_E
 
 target_link_libraries(publish_map_node
   ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
+  ${OpenCV_LIBS}
 )
 
 ## Rename C++ executable without prefix

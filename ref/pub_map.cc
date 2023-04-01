@@ -1,23 +1,20 @@
-#include<ros/ros.h>
-#include<nav_msgs/OccupancyGrid.h>
-#include<nav_msgs/GetMap.h>
-#include <opencv2/opencv.hpp>
-
-#include<iostream>
-#include<string>
+#include "ros/ros.h"
+#include "nav_msgs/OccupancyGrid.h"
+#include "nav_msgs/GetMap.h"
+#include <opencv2/highgui/highgui.hpp>
+#include <iostream>
+#include <string>
+ 
 using namespace std;
-
-const string pic_path = "/home/ming/ros1_workspace/testws/src/topp2/map/play.pgm";
-const string yaml_path= "/home/ming/ros1_workspace/testws/src/topp2/map/play.yaml";
-
+ 
 nav_msgs::OccupancyGrid BuildMap(const string& imgPath,const string& metaPath);
  
 //服务回调
 bool ServiceCallBack(nav_msgs::GetMap::Request &req,nav_msgs::GetMap::Response &res)
 {
     res.map=BuildMap(
-    pic_path,
-    yaml_path
+    "/media/chen/chen/Robot/projects_ros_test/test/src/mrobot_navigation/maps/cloister_gmapping.pgm",
+    "/media/chen/chen/Robot/projects_ros_test/test/src/mrobot_navigation/maps/cloister_gmapping1.yaml"
     );
     return true;
 }
@@ -28,36 +25,20 @@ int main(int argc, char * argv[])
  
 	ros::NodeHandle nh;
  
-	ros::Publisher pub = nh.advertise<nav_msgs::OccupancyGrid>("/my_map", 1);
+	ros::Publisher pub = nh.advertise<nav_msgs::OccupancyGrid>("/map", 1);
  
-	// ros::ServiceServer serv=nh.advertiseService("/static_map",ServiceCallBack);
-
-    ros::ServiceClient map_client=nh.serviceClient<nav_msgs::GetMap>("static_map");
-    map_client.waitForExistence();
-    nav_msgs::GetMap map_req;
-    nav_msgs::OccupancyGrid req;
-
-    bool flag=map_client.call(map_req);
-
-    nav_msgs::OccupancyGrid map=map_req.response.map;
-
-
+	ros::ServiceServer serv=nh.advertiseService("/static_map",ServiceCallBack);
 	
-	// nav_msgs::OccupancyGrid map=BuildMap(
-    // pic_path,
-    // yaml_path
-    // );
+	nav_msgs::OccupancyGrid map=BuildMap(
+	  "/media/chen/chen/Robot/projects_ros_test/test/map.pgm",
+	  "/media/chen/chen/Robot/projects_ros_test/test/map1.yaml"
+	);
  
 	cout<<"正在发布地图"<<endl;
  
 	while (ros::ok())
 	{
-        if(flag)
-		    pub.publish(map);
-        else
-        {
-            ROS_INFO_ONCE("NO MAP");
-        }
+		pub.publish(map);
 	}
  
 	ros::shutdown();

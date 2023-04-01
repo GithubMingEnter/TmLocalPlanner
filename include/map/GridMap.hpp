@@ -25,7 +25,8 @@ namespace env
         
     public:
         GridMap(ros::NodeHandle &nh) : n(nh){
-            ros::Subscriber map_sub = n.subscribe("/gridMap", 10, &GridMap::mapCallBack, this);
+            // ros::Subscriber map_sub = n.subscribe("/gridMap", 10, &GridMap::mapCallBack, this);
+            ros::Subscriber map_sub = n.subscribe("/my_map", 10, &GridMap::mapCallBack, this);
 
             // wait until map is received, when a map is received, mapData.header.seq will not be < 1  
             while (map_data_.header.seq<1 or map_data_.data.size()<1){

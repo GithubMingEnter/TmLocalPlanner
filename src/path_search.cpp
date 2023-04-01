@@ -28,7 +28,7 @@
 
 #include "path_search/JPS.hpp"
 #include "path_search/Astar.hpp"
-
+#include "path_search/HybridAstarSearch.hpp"
 using namespace std;
 
 class PathSearch
@@ -38,7 +38,7 @@ private:
 
     ros::Subscriber goal_sub_;
 
-    bool use_a_star_, use_jps_;
+    bool use_a_star_, use_jps_,use_hybrid_;
 
     std::vector<Eigen::Vector3d> res_points_;
     std::shared_ptr<vis::Visualization> vis_ptr_;
@@ -57,6 +57,7 @@ public:
 
         nh_.param<bool>("use_a_star", use_a_star_, false);
         nh_.param<bool>("use_jps", use_jps_, false);
+        nh_.param<bool>("use_hybrid", use_hybrid_, false);
         ROS_WARN_STREAM("[path search] | param use_a_star : " << use_a_star_);
         ROS_WARN_STREAM("[path search] | param use_JPS    : " << use_jps_);
 
@@ -141,6 +142,9 @@ public:
                 }
 
             }
+            // if(use_hybrid_){
+            //     shared_ptr<HybridAstarSearch> hybrid_search=make_shared<
+            // }
 
 
 

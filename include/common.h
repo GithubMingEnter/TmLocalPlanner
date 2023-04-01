@@ -1,5 +1,6 @@
 #ifndef COMMON_H
 #define COMMON_H
+
 #include <vector>
 #include <iostream>
 #include <ros/ros.h>
@@ -18,10 +19,9 @@
 
 using Emx=Eigen::MatrixXd;
 
-
 using Evx=Eigen::VectorXd;
-using E2v=Eigen::Vector2d;
-
+using Ev2=Eigen::Vector2d;
+using Ev3=Eigen::Vector3d;
 typedef struct  
 {
     double x;
