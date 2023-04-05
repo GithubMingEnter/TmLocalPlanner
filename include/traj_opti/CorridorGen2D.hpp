@@ -15,7 +15,7 @@
 #include <iostream>
 #include <map/GridMap.hpp>
 #include <vis/visualization.hpp>
-
+#include "sdqp/sdqp.hpp"
 using Emx=Eigen::MatrixXd;
 
 using Evx=Eigen::VectorXd;
@@ -30,7 +30,37 @@ typedef struct Rectangle
     double t;     // time allocated to this Rectangle
     Rectangle *cross_rect;
     std::vector<std::pair<double, double>> box;
-    /*
+
+    Eigen::Matrix<double, 2, 2> Q;
+    Eigen::Matrix<double, 2, 1> c;
+    Eigen::Matrix<double, 2, 1> x;
+    Emx A;
+    Evx b;    
+    int m=4; //edage num
+
+    Rectangle(Emx vertex_)
+    {
+        vertex = vertex_;
+        isValid = true;
+        t = 0.0;
+        cross_rect = nullptr;
+        setBox();
+    }
+    Rectangle() 
+    // :A(m,2),b(m)  //列表初始化不可行？
+    {
+        center = Evx::Zero(3);
+        vertex = Emx::Zero(4, 3);
+        Q<<2,0,
+           0,2;
+        A=Emx::Zero(m,2);
+        b=Evx::Zero(m);
+        isValid = true;
+        t = 0.0;
+        box.resize(2);
+        cross_rect = nullptr;
+    }
+     /*
         p0--------p1   ^ y
         |         |    |
         |         |    |
@@ -71,27 +101,83 @@ typedef struct Rectangle
         center(0) = (vertex(1, 0) + vertex(0, 0)) / 2.0;
         center(1) = (vertex(0, 1) + vertex(3, 1)) / 2.0;
         center(2) = 0;
+    }   
+    bool isfree(const double x1, const double y1) {
+        x(0) = x1;
+        x(1) = y1;
+        double dxx=(A * x - b).maxCoeff();
+        return (A * x - b).maxCoeff() > 0;
     }
-    Rectangle(Emx vertex_)
-    {
-        vertex = vertex_;
-        isValid = true;
-        t = 0.0;
-        cross_rect = nullptr;
-        setBox();
+    void setAb(){
+        int j=m-1;
+        // ROS_INFO_STREAM("XXXXXX2"); 
+        for (int k = 0; k < m; ++k) {
+            // ROS_INFO_STREAM("XXXXXX2"); 
+        // 边对应起始点 一般式：Ax+By+C=O（AB≠0）
+            A(k, 0) = vertex(k, 1) - vertex(j, 1);
+            A(k, 1) = vertex(j, 0) - vertex(k, 0);
+            b(k) = A(k, 0) * vertex(j, 0) + A(k, 1) * vertex(j, 1);
+            j = k;
+        }
     }
-    Rectangle()
-    {
-        center = Evx::Zero(3);
-        vertex = Emx::Zero(4, 3);
-        isValid = true;
-        t = 0.0;
-        box.resize(2);
-        cross_rect = nullptr;
+    double distance(const double x1, const double y1, Evx* grad = nullptr) {
+        
+     if (isfree(x1, y1)) {
+        c(0) = -2 * x1;
+        c(1) = -2 * y1;
+        sdqp::sdqp<2>(Q, c, A, b, x);//SDQP求解
+        double d, d2 = (x1 - x(0)) * (x1 - x(0)) + (y1 - x(1)) * (y1 - x(1));
+        if (d2 > 1e-6) {//有效free space 
+            d = std::sqrt(d2);
+            if (grad != nullptr) {
+            grad->operator()(0) = (x1 - x(0)) / d;//vector 指针对应位置梯度
+            grad->operator()(1) = (y1 - x(1)) / d;
+            }
+        } else {
+            d = 0;
+            if (grad != nullptr) {
+            grad->operator()(0) = grad->operator()(1) = 0;
+            }
+        }
+        // std::cout << "[x1:" << x1 << " y1:" << y1 << " x:" << x(0) << " y:" << x(1) << " d:" << d << "]" << std::endl;
+        return d;
+        } else {
+            // double d = 0;
+            // if (grad != nullptr) {
+            //   grad->operator()(0) = grad->operator()(1) = 0;
+            // }
+            double d = 1e20;
+            // 计算点到各个边的距离，比较
+            for (int k = 0; k < m; ++k) {
+                double la = A(k, 0);//la*x+lb*y+lc0
+                double lb = A(k, 1);
+                double lc = -b(k);
+                double l2 = la * la + lb * lb;
+                double d1 = std::abs(la * x1 + lb * y1 + lc) / std::sqrt(l2);
+                if (d1 < d) {
+                d = d1;
+                if (grad != nullptr) {
+                    //点到直线的垂足到(x0,y0)对应的(x,y)分量
+                    double dx = (lb * (lb * x1 - la * y1) - la * lc) / l2 - x1;
+                    double dy = (la * (la * y1 - lb * x1) - lb * lc) / l2 - y1;
+                    double norm_dxdy = std::max(std::sqrt(dx * dx + dy * dy), 0.01);//note 0.01
+                    grad->operator()(0) = dx / norm_dxdy;//与中心距离的比值
+                    grad->operator()(1) = dy / norm_dxdy;
+                    cout << grad->operator()(0) << "  " << grad->operator()(1) << endl;
+                }
+                }
+            }
+
+        return -d;
+        }
     }
-    ~Rectangle() {}
+        ~Rectangle() {}
 }
 Rectangle;
+
+
+
+
 
 class CorridorGen2D
 {
@@ -106,6 +192,7 @@ private:
     double MAX_Vel_, MAX_Acc_;
     Ev3 start_vel_;
     Ev3 start_point_, end_point_;
+    std::vector<Rectangle> last_rect_list;
 
     std::pair<Rectangle, bool> inflateRect(Rectangle rect, Rectangle last_rect);
     bool isContain(Rectangle this_rect, Rectangle last_rect);
@@ -127,7 +214,12 @@ public:
     ~CorridorGen2D(){};
     Rectangle generateRect(Ev3 pt);
     std::vector<Rectangle> corridorGeneration(std::vector<Ev3> path);
+    void distance(const double x1,const double y1, Evx* grad);
+
 };
+
+#include "traj_opti/CorridorGen2D.hpp"
+
 CorridorGen2D::CorridorGen2D(ros::NodeHandle nh,
                              std::shared_ptr<env::GridMap> &envPtr,
                              std::shared_ptr<vis::Visualization> &visPtr,
@@ -152,6 +244,31 @@ CorridorGen2D::CorridorGen2D(ros::NodeHandle nh,
     ROS_WARN_STREAM("[corridor] param | max acc            : " << MAX_Acc_);
     ROS_WARN_STREAM("[corridor] param | is debug           : " << is_debug_);
 }
+
+void CorridorGen2D::distance(const double x1,const double y1, Evx* grad=nullptr)
+{
+    int m=4;
+    Emx A(m,2);
+    Emx poly(m,4);
+    Evx b(m);
+    poly<<1,1,
+          5,1,
+          5,4,
+          1,4;
+    
+    int j=4-1;//尾部
+    for(int k=0;k<m;++k){
+        // 边对应起始点 一般式：Ax+By+C=O（AB≠0）
+        A(k,0)=poly(k,1)-poly(j,1);
+        A(k,1)=poly(j,0)-poly(k,0);
+        b(k)=A(k,0)*poly(j,0)+A(k,1)*poly(j,1);
+        j=k;
+    }
+
+
+}
+
+
 
 std::pair<Rectangle, bool> CorridorGen2D::inflateRect(Rectangle rect, Rectangle last_rect)
 {
@@ -274,9 +391,9 @@ std::pair<Rectangle, bool> CorridorGen2D::inflateRect(Rectangle rect, Rectangle 
             {
                 break;
             }
-            // TODO 方向修改
-            // p0.x-->p1.y
-            for (id_x = vertex_idx(0, 0); id_x <= vertex_idx(1, 0); id_x += res_)
+            
+            // p1.x-->p0.x
+            for (id_x = vertex_idx(1, 0); id_x >= vertex_idx(0, 0); id_x -= res_)
             {
                 if (collide)
                 {
@@ -320,7 +437,7 @@ std::pair<Rectangle, bool> CorridorGen2D::inflateRect(Rectangle rect, Rectangle 
             {
                 break;
             }
-            // TODO 方向修改
+           
             // p2.x--> p3.x
             for (id_x = vertex_idx(2, 0); id_x >= vertex_idx(3, 0); id_x -= res_)
             {
@@ -434,7 +551,7 @@ std::vector<Rectangle> CorridorGen2D::corridorGeneration(std::vector<Ev3> path)
                                                                             .toSec() *
                                                                         1000
                                                                  << " (ms) \033[0m");
-
+    last_rect_list.assign(rect_list_new.begin(),rect_list_new.end()); //赋值
     return rect_list_new;
 }
 /*
@@ -617,3 +734,4 @@ void CorridorGen2D::timeAllocation(std::vector<Rectangle> &corridor)
         corridor[k].t = dtxyz;
     }
 }
+

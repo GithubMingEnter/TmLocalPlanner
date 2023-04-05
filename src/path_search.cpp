@@ -28,7 +28,7 @@
 
 #include "path_search/JPS.hpp"
 #include "path_search/Astar.hpp"
-#include "path_search/HybridAstarSearch.hpp"
+// #include "path_search/HybridAstarSearch.hpp"
 using namespace std;
 
 class PathSearch
@@ -142,9 +142,9 @@ public:
                 }
 
             }
-            // if(use_hybrid_){
-            //     shared_ptr<HybridAstarSearch> hybrid_search=make_shared<
-            // }
+            if(use_hybrid_){
+                // shared_ptr<HybridAstarSearch> hybrid_search=make_shared<HybridAstarSearch>
+            }
 
 
 

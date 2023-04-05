@@ -61,6 +61,13 @@ include
 # add_executable(${PROJECT_NAME}_node src/main.cc)
 # target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES})
 
+
+add_executable(main_test_node src/main.cc)
+add_dependencies(main_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(main_test_node
+  ${catkin_LIBRARIES}
+)
+
 add_executable(topp_test_rviz_node src/test/test_rviz.cc)
 target_link_libraries(topp_test_rviz_node ${catkin_LIBRARIES})
 
