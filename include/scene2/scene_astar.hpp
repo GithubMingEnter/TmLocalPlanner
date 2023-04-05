@@ -1,83 +1,73 @@
-#ifndef SCENE_ASTAR_01
-#define SCENE_ASTAR_01
-
+#ifndef A2E3B3C6_29AA_43CA_98A9_E22FD21E4C22
+#define A2E3B3C6_29AA_43CA_98A9_E22FD21E4C22
+// Grid node object used by the astar algorithm
 #include <iostream>
+#include <limits>
 #include <vector>
+#include "scene_obstacles.hpp"
 
 #include "scene_base.hpp"
-#include "scene_obstacles_new.hpp"
+#include "common.h"
 
-double Inf = 1.0e40;
+double Inf= numeric_limits<double>::max();
+class gridNode{
+public:    
+    double x,y;
+    Eigen::Vector2d pos;
+    Eigen::Vector2i idx;
+    int state;
+    double f,g;//note cost
+    gridNode* father;
+    gridNode(Eigen::Vector2d _pos,Eigen::Vector2i _idx):
+        state(0),father(nullptr),pos(_pos),g(Inf),idx(_idx),f(Inf),g(Inf){}
+    gridNode(Eigen::Vector2d _pos):
+        state(0),father(nullptr),pos(_pos),f(Inf),g(Inf){}
+    ~gridNode(){};
+    
 
-// Grid node object used by the astar algorithm
-class gridNode {
- public:
-  Eigen::Vector2d pos;
-  Eigen::Vector2i idx;
-  int state;
-  double g, f;
-  gridNode* father;
-  gridNode(Eigen::Vector2i _idx, Eigen::Vector2d _pos)
-      : pos(_pos), idx(_idx), state(0), g(Inf), f(Inf), father(nullptr) {}
-  gridNode(Eigen::Vector2d _pos):
-          pos(_pos), state(0), g(Inf), f(Inf), father(nullptr) {}
-  ~gridNode() {}
 };
 
-// The main object ro construct scene and search an initial path by Astar algorithm
-class sceneAstar : public sceneBase {
-  public: 
-  double x0;
-  double y0;
-  double yaw0;
-  double lx;
-  double ly;
-  double ld;
-  double ild;
-  int obs_num;
-  size_t num_x = 0;
-  size_t num_y = 0;
-  std::vector<std::vector<gridNode>> map0;
-  std::vector<baseObstacle*> obs;
-  baseObstacleFactory* obs_factory_ptr;
+class sceneAstar:public sceneBase{
+public:
+    double x0,y0,yaw0;
+    double lx,ly,ld;
+    double ild;
+    double obs_num;
+    size_t num_x=0;
+    size_t num_y=0;
+    std::vector<std::vector<gridNode>> map0;
+    std::vector<baseObstacle*> obs;
+    baseObstacleFactory* obs_factory_ptr;
+    E2v pos_start,pos_goal;
+    std::vector<gridNode*> grid_along_path;
+    bool include_start,include_goal;
+    Emx astar_path;
 
-  Eigen::Vector2d pos_start;
-  Eigen::Vector2d pos_goal;
-  std::vector<gridNode*> grid_along_path;
-  bool include_start, include_goal;
-  Mat astar_path;
-
- public:
-  sceneAstar(double _x0, double _y0, double _yaw0, double _lx,
-             double _ly, double _ld, double _obs_d_min, double _obs_d_max, int _p_min, int _p_max) 
-             {
-    reset_prj(_x0, _y0, _yaw0, _lx, _ly, _ld);
-    /*
-    randomObstacleFactory1(int _p_min, int _p_max, double _x_min, double _x_max,
-                         double _y_min, double _y_max, double _d_min, double _d_max,
-                         double _x0, double _y0, double _yaw0)
-                         _x_min最小位置
-    */
+    sceneAstar(double _x0,double _y0,double _yaw0,double _lx,
+               double _ly,double _ld,double _obs_d_min,double _obs_d_max,int _p_min,
+               int _p_max)
+    {
+        /*randomObstacleFactory1(int _p_min, int _p_max, double _x_min, double _x_max,
+                            double _y_min, double _y_max, double _d_min, double _d_max,
+                            double _x0, double _y0, double _yaw0)
+                            _x_min最小位置
+        */
     obs_factory_ptr = new randomObstacleFactory1(_p_min, _p_max, 4., lx, 4., 
-                      ly, _obs_d_min, _obs_d_max, x0, y0, yaw0);
-  }
+                        ly, _obs_d_min, _obs_d_max, x0, y0, yaw0);       
+    }           
   ~sceneAstar() {
     obs_clear();
   }
-
-  // clear the list of obstacles
-  int obs_clear() {
-    for (auto& ob_ptr : obs) {
-      if (ob_ptr != nullptr) {
-        delete ob_ptr;
-      }
+  int obs_clear(){
+    for(baseObstacle* & ob_ptr:obs){
+        if(!ob_ptr){
+            delete ob_ptr;
+        }
     }
     obs.clear();
     return 0;
-  }
+  }   
 
-  // reset the path planning environment and prepare the grid information for
-  // astar algorithm
   int reset_prj(double _x0, double _y0, double _yaw0, double _lx, double _ly,
                 double _ld) {
     x0 = _x0;
@@ -87,23 +77,22 @@ class sceneAstar : public sceneBase {
     ly = _ly;
     ld = _ld;
     ild = 1.0 / _ld;//分辨率
-    num_x = static_cast<size_t>(std::floor(lx * ild)) + 1;//向下取整数
-    num_y = static_cast<size_t>(std::floor(ly * ild)) + 1;
+    num_x=static_cast<size_t>(std::floor(lx*ild))+1;////向下取整数
+    num_y=static_cast<size_t>(std::floor(ly*ild))+1;
     map0 = std::vector<std::vector<gridNode>>(num_x);
-    for (size_t i = 0; i < num_x; ++i) {
-      for (size_t j = 0; j < num_y; ++j) {
-        Eigen::Vector2i idx0 = {i, j};
-        map0[i].emplace_back(idx0, idx2pos(idx0));//记录索引和pos
-      }
+    for(size_t i=0;i<num_x;i++){
+        for(size_t j=0;j<num_y;j++){
+            Eigen::Vector2i idx0={i,j};
+            map0[i].emplace_back(idx0,idx2pos(idx0));
+        }
     }
-    obs_clear();//
-    pos_start = {x0, y0};
-    pos_goal = map0[num_x - 1][num_y - 1].pos;
+    obs_clear();
+    pos_start={x0,y0};
+    pos_goal = map0[num_x-1][num_y-1].pos;
 
     return 0;
-  }
 
-  // reset the grid map in astar algorithm
+ }
   int reset_map() {
     for (size_t i = 0; i < num_x; ++i) {
       for (size_t j = 0; j < num_y; ++j) {
@@ -115,8 +104,7 @@ class sceneAstar : public sceneBase {
     }
     return 0;
   }
-
-  // convert grid map index to position in real world
+    //索引转实际位置
   Eigen::Vector2d idx2pos(Eigen::Vector2i idx) {
     double lx1 = idx(0) * ld;
     double ly1 = idx(1) * ld;
@@ -124,20 +112,16 @@ class sceneAstar : public sceneBase {
     double y1 = y0 + lx1 * std::sin(yaw0) + ly1 * std::cos(yaw0);
     return {x1, y1};
   }
-
-  // convert position in real world to nearest grid map index
-  Eigen::Vector2i pos2idx(Eigen::Vector2d pos) {
-    double lx1 =
-        (pos(0) - x0) * std::cos(yaw0) + (pos(1) - y0) * std::sin(yaw0);
-    double ly1 =
-        (x0 - pos(0)) * std::sin(yaw0) + (pos(1) - y0) * std::cos(yaw0);
-    int idxx1 = static_cast<int>(
-        std::max(std::min(std::round(lx1 * ild), num_x - 1.0), 0.0));
-    int idxy1 = static_cast<int>(
-        std::max(std::min(std::round(ly1 * ild), num_y - 1.0), 0.0));
-    return {idxx1, idxy1};
+  //实际位置转索引，逆矩阵
+  Eigen::Vector2i pos2idx(Eigen::Vector2d pos){
+    double dx=pos(0)-x0;
+    double dy=pos(1)-y0;
+    double lx1=dx*std::cos(yaw0)+dy*std::sin(yaw0);
+    double ly1=dx*(-1)*std::sin(yaw0)+dy*std::cos(yaw0);
+    int idx1=static_cast<int>(std::max(std::min(std::round(lx1*ild),num_x-1.0),0.0));
+    int idy1=static_cast<int>(std::max(std::min(std::round(ly1*ild),num_y-1.0),0.0));
+    return {idx1,idy1};
   }
-
   // check if a grid map index is collision free (overloading1)
   bool is_free(int ix, int iy) {
     if (ix < 0 || ix >= (int)num_x || iy < 0 || iy >= (int)num_y) {
@@ -159,7 +143,6 @@ class sceneAstar : public sceneBase {
     int iy = idx(1);
     return is_free(ix, iy);
   }
-
   // check if a position in real world is collision free (overloading1)
   bool is_free(double x, double y) {
     //TODO
@@ -185,35 +168,31 @@ class sceneAstar : public sceneBase {
     }
     return true;
   }
-
   // check if a position in real world is collision free (overloading2)
   bool is_free(Eigen::Vector2d pos) {
     double x = pos(0);
     double y = pos(1);
     return is_free(x, y);
   }
-
-  // random obstacles to the planning environment
-  int random_obstacles(int _obs_num) {
+  int random_obstacles(int _obs_num){
     obs_clear();
-    obs_num = _obs_num;
-    for (int k = 0; k < _obs_num; ++k) {
-      baseObstacle* ob_ptr;
-      double dist_min;
-      do { 
-        ob_ptr = obs_factory_ptr->create();
-        dist_min = Inf;
-        for (int i = 0; i < static_cast<int>(obs.size()); ++i) {
-          double dist = obs[i]->distance(ob_ptr->x, ob_ptr->y);
-          if (dist < dist_min) dist_min = dist; //最短距离判定
-          // std::cout << dist << std::endl;
-        }
-
-      } while (dist_min < 1.15 * ob_ptr->r);
-      // std::cout << "[dist_min:" << dist_min << " dist_est:" << dist_min_est << ", r:" << ob_ptr->r << ", x:" << ob_ptr->x << ", y:" << ob_ptr->y << " i:" << (dist_min < 1.15 * ob_ptr->r) << "]" << std::endl;
-      obs.push_back(ob_ptr);
+    obs_num=_obs_num;
+    for(int k=0;k<_obs_num;++k){
+        baseObstacle* ob_ptr;
+        double dist_min;
+        do{
+            ob_ptr = obs_factory_ptr->create();
+            dist_min=Inf;
+            for(int i=0;i<static_cast<int>(obs.size());i++){
+                double dist= obs[i]->distance(ob_ptr->x,ob_ptr->y);
+                if(dist<dist_min) dist_min=dist;//最短距离判定
+                std::cout << dist << std::endl;
+            }
+        }while(dist_min<1.15*ob_ptr->r);
+        obs.emplace_back(ob_ptr);
     }
     return 0;
+
   }
 
   // set the goal position of path planning tasks
@@ -228,8 +207,7 @@ class sceneAstar : public sceneBase {
     return 0;
   }
 
-  // get the heuristic value of a grid map index in Astar algorithm
-  //TODO
+  //TODO optimal
   double heu(gridNode* n1, gridNode* n2) {
     int d_ix = std::abs(n1->idx(0) - n2->idx(0));
     int d_iy = std::abs(n1->idx(1) - n2->idx(1));
@@ -238,7 +216,6 @@ class sceneAstar : public sceneBase {
     return (diag * std::sqrt(2) + parallel);
   }
 
-  // Astar algorithm to search the initial path
   int astar_search() {
     reset_map();
     std::multimap<double, gridNode*> opens;
@@ -321,7 +298,6 @@ class sceneAstar : public sceneBase {
 
     return !astar_path_found;
   }
-
   // random gennerate an Astar path
   int random_astar_path() {
     double dist_min = 0.7 * (map0[0][0].pos - map0[num_x - 1][num_y - 1].pos).norm();
@@ -348,7 +324,7 @@ class sceneAstar : public sceneBase {
     return astar_state;
   }
 
-  // get value and grad info in distance field
+ // get value and grad info in distance field
   double dist_field(const double x1, const double y1, Vec* grad = nullptr) {
     double d0 = Inf, d1 = Inf;
     Vec g1(2);
@@ -369,7 +345,11 @@ class sceneAstar : public sceneBase {
     return d0;
   }
 
-
 };
 
-#endif  // SCENE_ASTAR_01
+
+
+
+
+
+#endif /* A2E3B3C6_29AA_43CA_98A9_E22FD21E4C22 */

@@ -1,8 +1,10 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <fstream>
 #include <vector>
 #include <iostream>
+
 #include <ros/ros.h>
 #include <ros/console.h>
 #include <tf/tf.h>
@@ -15,6 +17,7 @@
 #include <geometry_msgs/Twist.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
+
 #include <eigen3/Eigen/Core>
 
 using Emx=Eigen::MatrixXd;

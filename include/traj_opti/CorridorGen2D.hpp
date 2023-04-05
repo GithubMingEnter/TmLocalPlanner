@@ -291,7 +291,7 @@ std::pair<Rectangle, bool> CorridorGen2D::inflateRect(Rectangle rect, Rectangle 
         if (is_debug_)
             ROS_INFO_STREAM(" ======================================== -- " << iter);
         /*****x+
-              p1
+                p1
                 |
                 |
                 |

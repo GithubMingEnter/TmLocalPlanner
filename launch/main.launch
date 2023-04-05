@@ -1,18 +1,28 @@
 <launch>
-    <node pkg="sl_hw5" type="main_node" name="main_node" output="screen">
-    </node>
-    <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find sl_hw5)/launch/rviz_config/rviz_test0.rviz">
-    </node>
+        <!--  ************** Global Parameters ***************  -->
+        <param name="/use_sim_time" value="true"/>
+
+        <!--  ************** Stage Simulator ***************  -->
+	<!-- <node pkg="stage_ros" type="stageros" name="stageros" args="$(find teb_local_planner_tutorials)/stage/maze_carlike.world"> -->
+	<node pkg="stage_ros" type="stageros" name="stageros" args="$(find teb_local_planner_tutorials)/stage/empty.world">
+		<remap from="base_scan" to="scan"/>
+  	</node>
+
+	<node name="map_server" pkg="map_server" type="map_server" args="$(find teb_local_planner_tutorials)/maps/empty.yaml" output="screen">
+                <param name="frame_id" value="map"/>
+	</node>
+
+	<node pkg="amcl" type="amcl" name="amcl" output="screen">
+		<!-- <rosparam file="$(find teb_local_planner_tutorials)/cfg/amcl_params.yaml" command="load" /> -->
+		        <param name="odom_model_type"       value="diff"/>
+        <param name="use_map_topic"         value="true"/>
+        <param name="transform_tolerance"   value="0.5"/>
+	        <param name="initial_pose_x"            value="2"/>
+		<param name="initial_pose_y"            value="2"/>
+		<param name="initial_pose_a"            value="0"/>
+	</node>
+
+	<!-- <include file="$(find topp)/launch/topp.launch"> 
+
+	</include>-->
 </launch>
-
-
-
-
-
-
-
-
-
-
-
-

@@ -1,15 +1,13 @@
-#ifndef PAVEL_VALTR_01
-#define PAVEL_VALTR_01
+#ifndef B26B5C4A_CE18_4298_B201_15F2EE043752
+#define B26B5C4A_CE18_4298_B201_15F2EE043752
 
+#include "common.h"
 #include <algorithm>
 #include <eigen3/Eigen/Core>
 #include <iostream>
 #include <random>
 #include <vector>
-
-
-typedef Eigen::MatrixXd Mat;
-typedef Eigen::VectorXd Vec;
+using namespace std;
 
 struct randPoly {
   int RND_MAX = 655369;
@@ -100,5 +98,16 @@ struct randPoly {
     return 0;
   }
 };
-
 #endif  // PAVEL_VALTR_01
+
+
+
+
+
+
+
+
+
+
+
+#endif /* B26B5C4A_CE18_4298_B201_15F2EE043752 */

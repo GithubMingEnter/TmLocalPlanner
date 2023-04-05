@@ -8,6 +8,7 @@
     <node pkg = "topp2" type="publish_map_node" name="publish_map_node" output="screen"/>
     <!--图搜索 算法-->
     <node pkg="topp2" type="topp_search_and_opti" name="topp_search_and_opti_node" output="screen">
+        <rosparam file="$(find topp2)/config/topp.yaml" command = "load"/>
         <param name="sreach_algorithm" value="0"/>
 
         <param name="Astar/is_four_neighborhood" value="false" />
@@ -18,7 +19,7 @@
         <param name="corridor/max_iter_nu" value="10" />
         <param name="corridor/inflat_len_per_iter" value="3" />
         <param name="corridor/max_vel" value="1.0" />
-        <param name="corridor/max_acc" value="0.5" />
+        <!-- <param name="corridor/max_acc" value="0.5" /> -->
         <param name="corridor/is_debug" value="false" />
 
         <param name="traj_opti/order" value="5" />

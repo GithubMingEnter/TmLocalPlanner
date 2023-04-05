@@ -60,11 +60,12 @@ include
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/main.cc)
 # target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES})
+add_executable(main_node src/main.cpp)
+target_link_libraries(main_node ${catkin_LIBRARIES})
 
-
-add_executable(main_test_node src/main.cc)
-add_dependencies(main_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(main_test_node
+add_executable(test_grad_node src/test/test_grad.cc)
+add_dependencies(test_grad_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(test_grad_node
   ${catkin_LIBRARIES}
 )
 

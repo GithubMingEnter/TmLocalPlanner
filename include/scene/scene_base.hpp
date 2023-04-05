@@ -1,24 +1,21 @@
-#ifndef CDCBD068_AC38_4D7C_B984_4404F3A1332C
-#define CDCBD068_AC38_4D7C_B984_4404F3A1332C
-#include<eigen3/Eigen/Core>
-#include<map>
-#include<memory>
-#include"common.h"
+#ifndef SCENE_BASE_01
+#define SCENE_BASE_01
 
-class sceneBase{
-public:
-    //TODO 2d artifital distance field 
-    virtual double dist_field(const double x1,const double y1,Vec* grad=nullptr)=0;
-    virtual ~sceneBase() {}
+#include <eigen3/Eigen/Core>
+#include <map>
+#include <memory>
+#include <chrono>
 
+typedef Eigen::MatrixXd Mat;
+typedef Eigen::VectorXd Vec;
 
-
-
+// Base class of a scene that can provide artifital distance field information
+class sceneBase {
+ public:
+  virtual double dist_field(const double x1, const double y1, Vec* grad = nullptr) = 0;
+  virtual ~sceneBase() {}
 };
 
+#endif  // SCENE_BASE_01
 
 
-
-
-
-#endif /* CDCBD068_AC38_4D7C_B984_4404F3A1332C */
