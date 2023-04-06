@@ -1,0 +1,12 @@
+<launch>
+
+    <!-- 启动二维地图 -->
+    <!-- <include file="$(find topp2)/launch/map_creater.launch" /> -->
+    <node name="map_server" pkg="map_server" type="map_server" args="$(find topp2)/map/play.yaml" output="screen">
+    </node>
+    <node pkg = "topp2" type="publish_map_node" name="publish_map_node" output="screen"/>
+     <!-- <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find topp)/launch/rviz_config/rviz_test0.rviz">
+    </node> -->
+    <node pkg="rviz" type="rviz" name="$(anon rviz)" respawn="false" output="screen" args="-d $(find topp2)/rviz/topp_search_opti.rviz"/>
+
+</launch>

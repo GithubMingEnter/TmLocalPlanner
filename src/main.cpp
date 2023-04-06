@@ -1,5 +1,9 @@
 #include "main.hpp"
 
+vecD gx,gy;
+int sample_global=20;
+std::vector<gridNode*> grid_global_path;
+std::vector<Eigen::Vector2d> pt_vec;
 
 bool loadGlobalPath(const std::string &roadmap_path,
                     const double target_speed){
@@ -50,7 +54,10 @@ bool loadGlobalPath(const std::string &roadmap_path,
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "topp");
-  TmLocalPlanner tm_local_planner;
+  ros::NodeHandle nh,pri_nh("~");
+
+  TmLocalPlanner tm_local_planner(nh,pri_nh);
+  tm_local_planner.run();
 
 }
 

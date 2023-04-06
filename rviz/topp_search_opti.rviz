@@ -11,8 +11,11 @@ Panels:
         - /A_star1
         - /A_star1/A_star_node1
         - /A_star1/A_star_final_wpts1
+        - /A_star1/A_star_final_path1
         - /A_star1/Marker1
         - /Corridor1
+        - /Axes1
+        - /Robot1
       Splitter Ratio: 0.43133047223091125
     Tree Height: 665
   - Class: rviz/Selection
@@ -73,7 +76,7 @@ Visualization Manager:
       Marker Topic: /goal_point
       Name: Goal
       Namespaces:
-        {}
+        goal_point: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -81,7 +84,7 @@ Visualization Manager:
       Marker Topic: /start_point
       Name: start
       Namespaces:
-        {}
+        start_point: true
       Queue Size: 100
       Value: true
     - Class: rviz/Group
@@ -123,7 +126,7 @@ Visualization Manager:
           Radius: 0.029999999329447746
           Shaft Diameter: 0.10000000149011612
           Shaft Length: 0.10000000149011612
-          Topic: /search_and_opti_node/a_star_final_path
+          Topic: /a_star_final_path
           Unreliable: false
           Value: true
         - Alpha: 1
@@ -155,17 +158,17 @@ Visualization Manager:
           Marker Topic: /start_point
           Name: Marker
           Namespaces:
-            {}
+            start_point: true
           Queue Size: 100
           Value: true
       Enabled: true
       Name: A_star
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /topp_search_and_opti_node/corridor
+      Marker Topic: corridor
       Name: Corridor
       Namespaces:
-        {}
+        corridor: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -212,7 +215,7 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: 0
+      Angle: -0.029999997466802597
       Class: rviz/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
@@ -222,7 +225,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 130.16607666015625
+      Scale: 154.0765838623047
       Target Frame: <Fixed Frame>
       X: 0.4679286479949951
       Y: -1.0070278644561768

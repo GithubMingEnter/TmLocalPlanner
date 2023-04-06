@@ -61,6 +61,7 @@ include
 # add_executable(${PROJECT_NAME}_node src/main.cc)
 # target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES})
 add_executable(main_node src/main.cpp)
+add_dependencies(main_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(main_node ${catkin_LIBRARIES})
 
 add_executable(test_grad_node src/test/test_grad.cc)

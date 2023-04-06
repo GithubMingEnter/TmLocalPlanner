@@ -27,6 +27,7 @@
 #include "map/GridMap.hpp"
 #include "traj_opti/CorridorGen2D.hpp"
 #include "traj_opti/TrajOpti.hpp"
+
 #include <Eigen/Eigen>
 #include <Eigen/Core>
 #include <Eigen/Dense>

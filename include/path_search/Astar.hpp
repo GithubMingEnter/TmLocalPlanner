@@ -24,18 +24,94 @@
 using namespace std;
 
 // define in Common.h
-// struct Node
-// typedef priority_queue<Node*, vector<Node*> ,Compare > PQ;
+// struct Tm::Node
+// typedef priority_queue<Tm::Node*, vector<Tm::Node*> ,Compare > PQ;
+namespace Tm
+{
+typedef struct Node{
+    Eigen::Vector3i p;
+    double g;  // cost so far
+    double h;  // cost to go 
+    double f;  // total cost
+    Node* father_node;
+    std::vector<Node*> forcing_neis;
 
+    
+    Node(Eigen::Vector3i p){
+        this->p = p;
+        this->g = 0.0;
+        this->h = 0.0;
+        this->f = 0.0;
+        this->father_node = NULL;
+        this->forcing_neis = {}; // for JPS
+    }
+
+    Node(int x, int y, int z, Node* father){
+        this->p(0) = x;
+        this->p(1) = y;
+        this->p(2) = z;
+        this->g = 0.0;
+        this->h = 0.0;
+        this->f = 0.0;
+        this->father_node = father;
+        this->forcing_neis = {}; // for JPS
+    }
+
+    Node(Eigen::Vector3i p, Node* father){
+        this->p = p;
+        this->g = 0.0;
+        this->h = 0.0;
+        this->f = 0.0;
+        this->father_node = father;
+        this->forcing_neis = {}; // for JPS
+    }
+
+    Node() = default;
+
+
+    // 重载输出函数
+    friend std::ostream& operator << (std::ostream& ostr, Node &n){
+
+        if (n.father_node == NULL)
+        {
+            std::cout << "[ " << n.p.transpose() << " ] -- " << "GHF: " << n.g << " " << n.h << " " << n.f 
+            << " -- {  NULL  } " << std::endl;
+        }else
+        {
+            std::cout << "[ " << n.p.transpose() << " ] -- " << "GHF: " << n.g << " " << n.h << " " << n.f 
+            << " -- { " << (n.father_node)->p.transpose() << " } ";
+        }
+
+        return std::cout;
+        
+    }
+
+}Node;
+
+struct Compare
+{
+    bool operator()(const Node *a,const Node *b)const
+    {
+        if(a->f == b->f){
+            return a->h > b->h;
+        }else{
+            return a->f > b->f;
+        }
+    }
+};
+
+typedef priority_queue<Node*, vector<Node*> ,Compare > PQ;  
+
+
+} //namespace Tm
 class Astar
 {
 private:
     ros::NodeHandle n_;
     std::shared_ptr<env::GridMap> env_ptr_;
     std::shared_ptr<vis::Visualization> vis_ptr_;
-
-    PQ open_set_;
-    vector<Node*> close_set_;
+    std::priority_queue<Tm::Node*, vector<Tm::Node*> ,Tm::Compare > open_set_;
+    vector<Tm::Node*> close_set_;
 
     bool is_debug_;
     int heuristic_func_type_;
@@ -46,14 +122,14 @@ private:
     vector<Eigen::Vector3d> res_path_in_world_;
 
     void reset();
-    bool isNodeEqual(Node* a, Node*b){
+    bool isNodeEqual(Tm::Node* a, Tm::Node*b){
         return a->p.isApprox(b->p, 1e-5);
     }
-    void backSetNode(Node* node, double &sum);
-    void checkNeighbor(Node* thisNode, std::vector<Node*> &neiNodes, Node* endNode);
-    bool isInSet(Eigen::Vector3i p_map, vector<Node*> set);
-    double calHeuristicCost(Node* thisNode, Node* endNode);
-    bool inOpenSetProcess(Node* node, PQ & openSet);
+    void backSetNode(Tm::Node* Tm_node, double &sum);
+    void checkNeighbor(Tm::Node* thisNode, std::vector<Tm::Node*> &neiNodes, Tm::Node* endNode);
+    bool isInSet(Eigen::Vector3i p_map, vector<Tm::Node*> set);
+    double calHeuristicCost(Tm::Node* thisNode, Tm::Node* endNode);
+    bool inOpenSetProcess(Tm::Node* Tm_node, Tm::PQ & openSet);
 public:
     Astar(ros::NodeHandle nh, 
            std::shared_ptr<env::GridMap> &envPtr,
@@ -104,14 +180,14 @@ vis_ptr_(visPtr)
     
 }
 
-bool Astar::isInSet(Eigen::Vector3i p_map, vector<Node*> set){
+bool Astar::isInSet(Eigen::Vector3i p_map, vector<Tm::Node*> set){
     for(auto n: set){
         if(p_map.isApprox(n->p, 1e-5)) return true;
     }
     return false;
 }
 
-double Astar::calHeuristicCost(Node* thisNode, Node* endNode){
+double Astar::calHeuristicCost(Tm::Node* thisNode, Tm::Node* endNode){
     double dx = abs(thisNode->p(0) - endNode->p(0));
     double dy = abs(thisNode->p(1) - endNode->p(1));
     double h;
@@ -134,15 +210,15 @@ double Astar::calHeuristicCost(Node* thisNode, Node* endNode){
     return h;
 }
 
-bool Astar::inOpenSetProcess(Node* node, PQ & openSet){
-    PQ backSet;
+bool Astar::inOpenSetProcess(Tm::Node* Tm_node, Tm::PQ & openSet){
+    Tm::PQ backSet;
     bool inSet = false;
     while(!openSet.empty()){
-        Node* openNode = openSet.top();
+        Tm::Node* openNode = openSet.top();
         openSet.pop();  
-        if(isNodeEqual(node, openNode)){ // in openSet
-            if(node->f < openNode->f){ // 当前节点代价更优
-                backSet.push(node);
+        if(isNodeEqual(Tm_node, openNode)){ // in openSet
+            if(Tm_node->f < openNode->f){ // 当前节点代价更优
+                backSet.push(Tm_node);
                 if(is_debug_) ROS_INFO_STREAM("[check neighbor] in open set but change" );
             }else{
                 backSet.push(openNode);
@@ -154,21 +230,21 @@ bool Astar::inOpenSetProcess(Node* node, PQ & openSet){
         }
     }
 
-    if(!inSet) backSet.push(node);
+    if(!inSet) backSet.push(Tm_node);
 
     swap(openSet, backSet);
 
     return inSet;
 }
 
-void Astar::checkNeighbor(Node* thisNode, std::vector<Node*> &neiNodes, Node* endNode){
+void Astar::checkNeighbor(Tm::Node* thisNode, std::vector<Tm::Node*> &neiNodes, Tm::Node* endNode){
     int x, y, z;
     for(int i=1; i<node_dir_.size(); i++){
         x = thisNode->p(0) + node_dir_[i-1];
         y = thisNode->p(1) + node_dir_[i];
         z = 0;
         Eigen::Vector3i nei(x, y, z);
-        if(is_debug_) ROS_INFO_STREAM("[check neighbor] ......check new node....." << nei.transpose() );
+        if(is_debug_) ROS_INFO_STREAM("[check neighbor] ......check new Tm_node....." << nei.transpose() );
 
         // check if the nei point is outside the map or collision
         if(!env_ptr_->isPointValid(nei)){
@@ -183,7 +259,7 @@ void Astar::checkNeighbor(Node* thisNode, std::vector<Node*> &neiNodes, Node* en
         }
 
         // check if the nei point is in open set
-        Node* nei_node = new Node(nei, thisNode);
+        Tm::Node* nei_node = new Tm::Node(nei, thisNode);
         nei_node->g = thisNode->g + (nei_node->p - thisNode->p).norm();
         nei_node->h = calHeuristicCost(nei_node, endNode);
         nei_node->f = nei_node->g + nei_node->h;
@@ -192,7 +268,7 @@ void Astar::checkNeighbor(Node* thisNode, std::vector<Node*> &neiNodes, Node* en
             continue;
         }
 
-        if(is_debug_) ROS_INFO_STREAM("[check neighbor] add new node" << *nei_node);
+        if(is_debug_) ROS_INFO_STREAM("[check neighbor] add new Tm_node" << *nei_node);
 
         neiNodes.push_back(nei_node);
     }
@@ -216,15 +292,15 @@ void Astar::reset(){
 
 }
 
-void Astar::backSetNode(Node* node, double &sum){
+void Astar::backSetNode(Tm::Node* Tm_node, double &sum){
     sum = 0;
-    while(node != nullptr){
-        if(node->father_node != nullptr){
-            sum += (node->p - node->father_node->p).norm();
+    while(Tm_node != nullptr){
+        if(Tm_node->father_node != nullptr){
+            sum += (Tm_node->p - Tm_node->father_node->p).norm();
         }
-        res_path_in_map_.push_back(node->p);
-        res_path_in_world_.push_back(env_ptr_->mapToWorld(node->p));
-        node = node->father_node;
+        res_path_in_map_.push_back(Tm_node->p);
+        res_path_in_world_.push_back(env_ptr_->mapToWorld(Tm_node->p));
+        Tm_node = Tm_node->father_node;
     }
 
     reverse(res_path_in_map_.begin(), res_path_in_map_.end());
@@ -250,13 +326,13 @@ bool Astar::search(Eigen::Vector3d start, Eigen::Vector3d end){
 
     // push start node into open_set
     Eigen::Vector3i p_start = env_ptr_->worldToMap(start);
-    Node* start_node = new Node(p_start);
+    Tm::Node* start_node = new Tm::Node(p_start);
     open_set_.push(start_node);
 
     Eigen::Vector3i p_end = env_ptr_->worldToMap(end);
-    Node* end_node = new Node(p_end);
+    Tm::Node* end_node = new Tm::Node(p_end);
 
-    Node* current_node;
+    Tm::Node* current_node;
 
  
     int c = 1;
@@ -273,7 +349,7 @@ bool Astar::search(Eigen::Vector3d start, Eigen::Vector3d end){
             }
         }
 
-        // step 1: push a cost mini Node to process
+        // step 1: push a cost mini Tm::Node to process
         current_node = open_set_.top();
 
         if(is_debug_) ROS_INFO_STREAM("currnet node: " << *current_node);
@@ -298,7 +374,7 @@ bool Astar::search(Eigen::Vector3d start, Eigen::Vector3d end){
         open_set_.pop();
         
         // step 3: 
-        std::vector<Node*> neighborNodes;
+        std::vector<Tm::Node*> neighborNodes;
         checkNeighbor(current_node, neighborNodes, end_node);
 
         // if vis

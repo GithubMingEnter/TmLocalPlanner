@@ -20,6 +20,7 @@ using namespace std;
 
 //*************************************************************
 // define node for A*, JPS ...
+
 typedef struct Node{
     Eigen::Vector3i p;
     double g;  // cost so far
@@ -92,7 +93,11 @@ struct Compare
     }
 };
 
-typedef priority_queue<Node*, vector<Node*> ,Compare > PQ;
+typedef priority_queue<Node*, vector<Node*> ,Compare > PQ;  
+
+
+
+
 
 
 #endif /* COMMON_H */

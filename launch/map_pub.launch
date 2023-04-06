@@ -4,18 +4,7 @@
     </node>
     <node pkg = "topp2" type="publish_map_node" name="publish_map_node" output="screen"/>
     <!--path search algorihtm-->
-    <node pkg="topp2" type="topp_path_search" name="topp_path_search" output="screen">
-        <param name="use_a_star"                 value="true" />
-        <param name="Astar/is_debug"             value="false" />  <!--false-->
-        <param name="Astar/is_four_neighborhood" value="false" />
-        <param name="Astar/heuristic_func_type"  value="1" />  <!--启发函数选择 0 - Manhattan Distance 1 - Diagonal distance 2 - Euclidean distance -->
-        <param name="Astar/iter_inter_step"      value="20000" /> <!-- if is_debug is true 为了更好的显示，每隔iter_step步，需要键入值以继续 -->
 
-        <param name="use_jps"                    value="false" />
-        <param name="JPS/is_debug"               value="false" />
-        <param name="JPS/heuristic_func_type"    value="0" />
-        <param name="JPS/iter_inter_step"        value="20000" />
-    </node>
     <node pkg="rviz" type="rviz" name="$(anon rviz)" respawn="false" output="screen" args="-d $(find topp2)/rviz/2d_search.rviz"/>
 
 </launch>

@@ -1,11 +1,40 @@
 <launch>
-     <node pkg="topp" type="main_node" name="main_node" output="screen">
+
+    <!-- 启动二维地图 -->
+    <!-- <include file="$(find topp2)/launch/map_creater.launch" /> -->
+    <node name="map_server" pkg="map_server" type="map_server" args="$(find topp2)/map/play.yaml" output="screen">
+    </node>
+
+    <node pkg = "topp2" type="publish_map_node" name="publish_map_node" output="screen"/>
+
+     <node pkg="topp2" type="main_node" name="main_node" output="screen">
         <param name="wheelbase_length"                  value="1.00" />
         <param name="v_max"                             value="5.0"/>    
         <param name="a_max"                             value="1.0"/> 
-         <param name="obs_num"                             value="11.0"/>                       
-    </node>
-     <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find topp)/launch/rviz_config/rviz_test0.rviz">
-    </node>
+         <param name="obs_num"                             value="11.0"/> 
+       <rosparam file="$(find topp2)/config/topp.yaml" command = "load"/>
+        <param name="sreach_algorithm" value="0"/>
+
+        <param name="Astar/is_four_neighborhood" value="false" />
+        <param name="Astar/heuristic_func_type" value="1" />  <!--启发函数选择 0 - Manhattan Distance 1 - Diagonal distance 2 - Euclidean distance -->
+        <param name="Astar/is_debug" value="false" />  <!--false-->
+        <param name="Astar/iter_inter_step" value="2000" /> <!-- if is_debug is true 为了更好的显示，每隔iter_step步，需要键入值以继续 -->
+
+        <param name="corridor/max_iter_nu" value="10" />
+        <param name="corridor/inflat_len_per_iter" value="3" />
+        <param name="corridor/max_vel" value="1.0" />
+        <!-- <param name="corridor/max_acc" value="0.5" /> -->
+        <param name="corridor/is_debug" value="false" />
+
+        <param name="traj_opti/order" value="5" />
+        <param name="traj_opti/min_order" value="4" />
+
+        <param name="traj_opti/traj_type" value="0" />  <!--曲线类型 0 多项式 1 贝塞尔-->
+        <param name="traj_opti/is_debug" value="true" />
+
+    </node> 
+     <!-- <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find topp)/launch/rviz_config/rviz_test0.rviz">
+    </node> -->
+    <node pkg="rviz" type="rviz" name="$(anon rviz)" respawn="false" output="screen" args="-d $(find topp2)/rviz/topp_search_opti.rviz"/>
 
 </launch>

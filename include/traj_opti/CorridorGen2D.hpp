@@ -231,7 +231,7 @@ CorridorGen2D::CorridorGen2D(ros::NodeHandle nh,
     n_.param<int>("corridor/max_iter_nu", max_iter_nu_, 5);
     n_.param<int>("corridor/inflat_len_per_iter", inflat_len_per_iter_, 3);
     n_.param<double>("corridor/max_vel", MAX_Vel_, 1.0);
-    n_.param<double>("corridor/max_acc", MAX_Acc_, 0.1);
+    n_.param<double>("corridor/max_acc", MAX_Acc_, 0.5);
     n_.param<bool>("corridor/is_debug", is_debug_, false);
 
     res_ = env_ptr_->getResolution();
