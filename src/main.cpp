@@ -1,49 +1,6 @@
 #include "main.hpp"
 
-vecD gx,gy;
-int sample_global=20;
-std::vector<gridNode*> grid_global_path;
-std::vector<Eigen::Vector2d> pt_vec;
 
-bool loadGlobalPath(const std::string &roadmap_path,
-                    const double target_speed){
-    std::ifstream infile;
-    infile.open(roadmap_path);
-    if(!infile.is_open()){
-        std::cout<<("can't open global path\n");
-    }
-    std::vector<std::pair<double,double>> xy_points;
-    std::string s,x,y;
-    int count=0;
-    while(getline(infile,s)){
-      
-        std::stringstream word(s);
-        word>>x;word>>y;
-        //每隔20取一个点
-        if(count%sample_global==0)
-        {
-          double pt_x=std::atof(x.c_str());
-          double pt_y=std::stod(y);
-          gx.emplace_back(pt_x);
-          gy.emplace_back(pt_y);
-         
-//           std::cout<<count++<<std::endl;
-          Eigen::Vector2d pt;
-          pt<<pt_x,pt_y;
-          pt_vec.emplace_back(pt);
-//          gridNode grid_temp(pt);
-//            gridNode* node_current = &grid_temp;
-// std::cout<<count<<std::endl;
-//           grid_global_path.emplace_back(node_current);
-          // delete node_current;
-        }
-        //TODO 考虑终点
-
-    }
-    infile.close();
-    return true;
-
-}
 
 
 

@@ -16,15 +16,11 @@
         <param name="sreach_algorithm" value="0"/>
 
         <param name="Astar/is_four_neighborhood" value="false" />
-        <param name="Astar/heuristic_func_type" value="1" />  <!--启发函数选择 0 - Manhattan Distance 1 - Diagonal distance 2 - Euclidean distance -->
+        <param name="Astar/heuristic_func_type" value="0" />  <!--启发函数选择 0 - Manhattan Distance 1 - Diagonal distance 2 - Euclidean distance -->
         <param name="Astar/is_debug" value="false" />  <!--false-->
         <param name="Astar/iter_inter_step" value="2000" /> <!-- if is_debug is true 为了更好的显示，每隔iter_step步，需要键入值以继续 -->
 
-        <param name="corridor/max_iter_nu" value="10" />
-        <param name="corridor/inflat_len_per_iter" value="3" />
-        <param name="corridor/max_vel" value="1.0" />
-        <!-- <param name="corridor/max_acc" value="0.5" /> -->
-        <param name="corridor/is_debug" value="false" />
+
 
         <param name="traj_opti/order" value="5" />
         <param name="traj_opti/min_order" value="4" />

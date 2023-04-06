@@ -41,7 +41,50 @@ date: 2023.4.5
 #include <Eigen/Dense>
 
 bool is_print=false;
+vecD gx,gy;
+int sample_global=1;
+std::vector<gridNode*> grid_global_path;
+std::vector<Eigen::Vector3d> pt_vec;
+const std::string xy_path="/home/ming/ros1_workspace/testws/src/hybrid_astar_planner/test_the_plugin/scripts/Aspoint/xy.txt";
+bool loadGlobalPath(const std::string &roadmap_path,
+                    const double target_speed){
+    std::ifstream infile;
+    infile.open(roadmap_path);
+    if(!infile.is_open()){
+        std::cout<<("can't open global path\n");
+    }
+    std::vector<std::pair<double,double>> xy_points;
+    std::string s,x,y;
+    int count=0;
+    while(getline(infile,s)){
+      
+        std::stringstream word(s);
+        word>>x;word>>y;
+        //每隔20取一个点
+        if(count%sample_global==0)
+        {
+          double pt_x=std::atof(x.c_str());
+          double pt_y=std::stod(y);
+          gx.emplace_back(pt_x);
+          gy.emplace_back(pt_y);
+         
+//           std::cout<<count++<<std::endl;
+          Eigen::Vector3d pt;
+          pt<<pt_x,pt_y,0.0;
+          pt_vec.emplace_back(pt);
+//          gridNode grid_temp(pt);
+//            gridNode* node_current = &grid_temp;
+// std::cout<<count<<std::endl;
+//           grid_global_path.emplace_back(node_current);
+          // delete node_current;
+        }
+        //TODO 考虑终点
 
+    }
+    infile.close();
+    return true;
+
+}
 class TmLocalPlanner{
 private:
     int sreach_algorithm_; //0 A* 1 hybrid A*
@@ -49,6 +92,8 @@ private:
     //map
     float resolution_;
     //planning 
+    double step_s_;//离散点步长
+    double c0_,c1_;
     double planning_frequency_;
     //车辆参数
     double wheelbase_length_;
@@ -198,6 +243,16 @@ public:
 
     start_vel.setZero();
     start_acc.setZero();
+
+    Emx astar_path;
+    rviz1DisSimp disp_rviz(nh_, "topp_array", "map", "topp_test");
+
+    if(loadGlobalPath(xy_path,1.0)){
+      ROS_INFO("GET REF traj");
+    }
+    // startGoal.emplace_back(-0.95,0.218,0);
+    // startGoal.emplace_back(1.755,-1.533,0);
+    // startGoal.emplace_back(0,0,0);
     while(ros::ok()){
         startGoal.clear();
         is_start_set = is_goal_set = false;
@@ -235,29 +290,60 @@ public:
             // A-star search and opti
         ros::Time a_star_search_time = ros::Time::now();
         // 1.fornt-end path search 
+        
         bool a_star_res = a_star_search_->search(startGoal[0], startGoal[1]);
         if(a_star_res){
+            disp_rviz.ma.markers.clear();//清理绘制图形
             std::vector<Ev3> final_path=a_star_search_->getPathInWorld();
-            ros::Time time1 = ros::Time::now();
-            vis_ptr_->visPath("a_star_final_path", final_path);
-            ROS_WARN_STREAM("A star search time: | time1 --> " << (ros::Time::now() - time1).toSec() * 1000 << " (ms)");
+            
+            vis_ptr_->visPath("a_star_final_path", pt_vec);
+            ROS_WARN_STREAM("A star search time: | time1 --> " << (ros::Time::now() - a_star_search_time).toSec() * 1000 << " (ms)");
 
-            //2 corridor generte
+            //2. corridor generte
+            ros::Time time1 = ros::Time::now();
             shared_ptr<CorridorGen2D> corridor_gen=make_shared<CorridorGen2D>(pri_nh_,env_ptr_,vis_ptr_,start_vel);
-            std::vector<Rectangle> corridor=corridor_gen->corridorGeneration(final_path);
-            time1 = ros::Time::now();
+            std::vector<Rectangle> corridor=corridor_gen->corridorGeneration(pt_vec);
+            
             ROS_INFO_STREAM("corridor size: "<<corridor.size());
             vis_ptr_->visCorridor("corridor",corridor,vis::Color::blue);
             ROS_WARN_STREAM("corridor_gen time: | time1 --> " << (ros::Time::now() - time1).toSec() * 1000 << " (ms)");
 
             time1 = ros::Time::now();
-            //3 optimal 
+            astar_path.resize(pt_vec.size(),2);
+            Vec dist_grad(2);
+            for(int i=0;i<pt_vec.size();i++){
+                astar_path.row(i)=pt_vec[i].head(2);
+                // corridor_gen->dist_field(astar_path(i,0),astar_path(i,1),&dist_grad);
+            }
+
+            // path optimization
+            //   cubicSplineOpt(sceneBase& _scene, Mat& _path, double _step, double _c0 = 200, double _c1 = -10)
+            // : scene0(_scene), path0(_path), step(_step), c0(_c0), c1(_c1) 
+            cubicSplineOpt cso(corridor_gen, astar_path, step_s_, c0_, c1_);
+            //3. optimal 
+            cso.path_opt_lbfgs();
+            //4. trajectory time optimization
+            cso.topp_prepare(4);
+            // conicALMTOPP2(Vec& _s, Mat& _q, Mat& _qv, Mat& _qa, double _a_max,
+                    // double _v_max, double _v_start, double _v_end);
+            conicALMTOPP2 topp2(cso.s1, cso.q1, cso.qv1, cso.qa1, a_max_, v_max_, 0.0, 0.0);
+            Vec a,b,c,d;
+            double result;
+            int topp_ret = topp2.solve(result, a, b, c, d);
+
+            splineOptDis disp_cso(disp_rviz, cso);
+            disp_cso.add_lbfgs_path_points();
+            // disp_cso.add_lbfgs_path();
+
+            conicAlmToppDis disp_topp(disp_rviz, topp2);
+            disp_topp.add_topp_trajectory_points(v_min_, v_max_);
                 // vis_ptr_->visualize2dPoints("a_star_final_traj", final_traj, env_ptr_->getResolution(), vis::Color::green, 1, "map", true);
             ROS_WARN_STREAM("Optimal traj time: | time3 --> " << (ros::Time::now() - time1).toSec() * 1000 << " (ms)");
 
             ROS_WARN_STREAM("total generate trajectory time: | total --> " << (ros::Time::now() - a_star_search_time).toSec() * 1000 << " (ms)");
-        
+
         }
+        disp_rviz.send();
 
     }
 
@@ -284,7 +370,9 @@ public:
     pri_nh_.param<double>("a_max",a_max_,0.5);
     pri_nh_.param<double>("planning_frequency",planning_frequency_,5);
     pri_nh_.param<int>("obs_num",obs_num_,10);
-
+    pri_nh_.param<double>("step_s",step_s_,0.45);
+    pri_nh_.param<double>("c0",c0_,5);
+    pri_nh_.param<double>("c1",c1_,-18);
     ROS_WARN_STREAM("v_max_ = "<<v_max_);
     ROS_WARN_STREAM("obs_num_ = "<<obs_num_);
     vis_ptr_ = make_shared<vis::Visualization>(nh_);

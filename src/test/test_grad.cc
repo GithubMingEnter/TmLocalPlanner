@@ -203,10 +203,10 @@ struct polyObstacle : public baseObstacle {
 void test_obs(){
     Emx poly(4,2);
 
-    poly << 1, 1,
-            5, 1,
-            5, 4,
-            1, 4;
+    poly << -1.3, 0.56,
+            -0.13,0.56,
+            -0.13,-0.15,
+            -1.3, -0.15;
     baseObstacle* obs_ptr;
  
     obs_ptr=new polyObstacle(poly,0,0,0);
@@ -259,21 +259,24 @@ void testRect(double xt,double yt,Vec* grad)
     double d0=1e6,d1=1e6;
     Emx poly(4,3);
 
-    poly << 1, 1,0,
-            5, 1,0,
-            5, 4,0,
-            1, 4,0;
-
+    poly << -1.3, 0.56,0,
+            -0.13,0.56,0,
+            -0.13,-0.15,0,
+            -1.3, -0.15,0;
+    // poly << -1.3, -0.15,0,
+    //         -0.13,-0.15,0,
+    //         -0.13,0.56,0,
+    //         -1.3, 0.56,0;
  
     Emx poly1(4,3);
-    poly1<<3,2,0,
-           8,2,0,
-           8,8,0,
-           3,8, 0  ;
-    Rectangle* rect1=createRect(poly1);
+    poly1<<-0.6,0.09,0,
+           0.89,0.09,0,
+           0.89,-1.63,0,
+           -0.6,-1.63, 0  ;
+    Rectangle* rect1=createRect(poly);
     std::vector<Rectangle*> obs;
     obs.emplace_back(rect1);
-    rect1=createRect(poly);
+    rect1=createRect(poly1);
     obs.emplace_back(rect1);
     Evx g1(2);
     g1 << 0, 0;
@@ -301,14 +304,15 @@ int main(int argc, char **argv)
     Vec dist_grad(2);
     
 
-    testRect(2,3,&dist_grad);
-    cout<<"testRect(3,2,&dist_grad)"<<endl;
-    testRect(3,2,&dist_grad);
+    testRect(-0.0,-0.75,&dist_grad);
+     testRect(-0.93,0.235,&dist_grad);
+    // cout<<"testRect(3,2,&dist_grad)"<<endl;
+    // testRect(3,2,&dist_grad);
     
-    cout<<"testRect(5,4,&dist_grad);"<<endl;
-    testRect(5,4,&dist_grad);
-    cout<<"testRect(4,2.5,&dist_grad);"<<endl;
-    testRect(4,2.5,&dist_grad);
-    testRect(6.5,6,&dist_grad);
+    // cout<<"testRect(5,4,&dist_grad);"<<endl;
+    // testRect(5,4,&dist_grad);
+    // cout<<"testRect(4,2.5,&dist_grad);"<<endl;
+    // testRect(4,2.5,&dist_grad);
+    // testRect(6.5,6,&dist_grad);
 
 }

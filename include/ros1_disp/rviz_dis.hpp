@@ -42,9 +42,9 @@ struct rviz1DisSimp {
   rviz1DisSimp(ros::NodeHandle& nh, const std::string publisher_name, const std::string frame_name, const std::string name_space)
       : n(nh), r(30), p_name(publisher_name), f_name(frame_name), ns(name_space), id0(0) {
     pub = n.advertise<visualization_msgs::MarkerArray>(publisher_name, 10);
-    while (pub.getNumSubscribers() == 0) {
-      r.sleep();
-    }
+    // while (pub.getNumSubscribers() == 0) {
+    //   r.sleep();
+    // }
   }
   virtual ~rviz1DisSimp() {}
 

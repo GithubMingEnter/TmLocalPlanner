@@ -16,6 +16,7 @@ Panels:
         - /Corridor1
         - /Axes1
         - /Robot1
+        - /MarkerArray1
       Splitter Ratio: 0.43133047223091125
     Tree Height: 665
   - Class: rviz/Selection
@@ -188,6 +189,14 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /topp_array
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -215,7 +224,7 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: -0.029999997466802597
+      Angle: -0.034999996423721313
       Class: rviz/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549

@@ -12,12 +12,13 @@
 
 #include "lbfgs/lbfgs_new.hpp"
 #include "scene/scene_base.hpp"
+#include "traj_opti/CorridorGen2D.hpp"
 
 typedef Eigen::SparseMatrix<double> SpMat;
 
 struct cubicSplineOpt {
   // basic information
-  sceneBase& scene0;
+  shared_ptr<CorridorGen2D> Corridor_;
   Mat& path0;
   double step;
   Mat points0;
@@ -37,8 +38,8 @@ struct cubicSplineOpt {
   Vec s1;
   Mat q1, qv1, qa1;
 
-  cubicSplineOpt(sceneBase& _scene, Mat& _path, double _step, double _c0 = 200, double _c1 = -10)
-      : scene0(_scene), path0(_path), step(_step), c0(_c0), c1(_c1) {
+  cubicSplineOpt(shared_ptr<CorridorGen2D> _scene, Mat& _path, double _step, double _c0 = 200, double _c1 = -10)
+      : Corridor_(_scene), path0(_path), step(_step), c0(_c0), c1(_c1) {
     generate_inital_cubic_spline_points(step);
     generate_static_matrices();//原有形式三次样条
   }
@@ -360,7 +361,8 @@ struct cubicSplineOpt {
     for (int i = 1; i < segs; ++i) {
       double x1 = path(i, 0);
       double y1 = path(i, 1);
-      double dist = opt->scene0.dist_field(x1, y1, &dist_grad);
+      double dist = opt->Corridor_->dist_field(x1, y1, &dist_grad);
+      std::cout<<"dist= "<<dist<<endl;
       // f(x) = c0*exp(c1*x);
       if (dist < 1e-4) {
         cost_potential += 0;
@@ -400,9 +402,9 @@ struct cubicSplineOpt {
     lbfgs::lbfgs_parameter_t lbfgs_param;
     lbfgs_param.s_curv_coeff = 0.7;
     lbfgs_param.f_dec_coeff = 1e-4;
-    lbfgs_param.g_epsilon = 1e-5;
+    lbfgs_param.g_epsilon = 1.0e-6;
     lbfgs_param.past = 3;
-    lbfgs_param.delta = 1e-4;
+    lbfgs_param.delta = 1.0e-6;
 
     std::cout << "{{{{ step1: " << points0.rows() << " " << points0.cols() << " " << coeff.size() << std::endl;
     //输出A*搜索到点的集合

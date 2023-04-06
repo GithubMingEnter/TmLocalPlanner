@@ -23,7 +23,7 @@ using Ev2=Eigen::Vector2d;
 using Ev3=Eigen::Vector3d;
 typedef struct Rectangle
 {               // TODO 嵌入结构体
-    Emx vertex; //// 矩形相当于4乘3的数组   vertex:4x3
+    Eigen::Matrix<double, 4, 3> vertex; //// 矩形相当于4乘3的数组   vertex:4x3
 
     Ev3 center;
     bool isValid; // Does the corridor delete
@@ -106,12 +106,49 @@ typedef struct Rectangle
         x(0) = x1;
         x(1) = y1;
         double dxx=(A * x - b).maxCoeff();
-        return (A * x - b).maxCoeff() > 0;
+        return dxx > 0;
     }
+     /*以左下角为起点，逆时针
+        p3--------p2   ^ y
+        |         |    |
+        |         |    |
+        |         |    |
+        p0--------p1   -----------> x
+
+        vertex(0, 0) is p0.x
+
+    */
+    // void setAb(){
+    //     int j=m-1;
+    //     // ROS_INFO_STREAM("XXXXXX2"); 
+    //     // Emx ver_Ab;
+    //     // ver_Ab<<
+    //     for (int k = 0; k < m; ++k) {
+    //         // ROS_INFO_STREAM("XXXXXX2"); 
+    //     // 边对应起始点 一般式：Ax+By+C=O（AB≠0）
+    //         A(k, 0) = vertex(k, 1) - vertex(j, 1);
+    //         A(k, 1) = vertex(j, 0) - vertex(k, 0);
+    //         b(k) = A(k, 0) * vertex(j, 0) + A(k, 1) * vertex(j, 1);
+    //         j = k;
+    //     }
+    // }
+
+    /*以左上角为起点 ，顺时针
+        p0--------p1   ^ y
+        |         |    |
+        |         |    |
+        |         |    |
+        p3--------p2   -----------> x
+
+        vertex(0, 0) is p0.x
+
+    */
     void setAb(){
-        int j=m-1;
+        int j=0;
         // ROS_INFO_STREAM("XXXXXX2"); 
-        for (int k = 0; k < m; ++k) {
+        // Emx ver_Ab;
+        // ver_Ab<<
+        for (int k = m-1; k >=0; k--) {
             // ROS_INFO_STREAM("XXXXXX2"); 
         // 边对应起始点 一般式：Ax+By+C=O（AB≠0）
             A(k, 0) = vertex(k, 1) - vertex(j, 1);
@@ -119,7 +156,7 @@ typedef struct Rectangle
             b(k) = A(k, 0) * vertex(j, 0) + A(k, 1) * vertex(j, 1);
             j = k;
         }
-    }
+    }    
     double distance(const double x1, const double y1, Evx* grad = nullptr) {
         
      if (isfree(x1, y1)) {
@@ -130,8 +167,9 @@ typedef struct Rectangle
         if (d2 > 1e-6) {//有效free space 
             d = std::sqrt(d2);
             if (grad != nullptr) {
-            grad->operator()(0) = (x1 - x(0)) / d;//vector 指针对应位置梯度
-            grad->operator()(1) = (y1 - x(1)) / d;
+                grad->operator()(0) = (x(0)-x1 ) / d;//vector 指针对应位置梯度
+                grad->operator()(1) = (x(1)-y1  ) / d;//x.-x1外部梯度 note
+                // grad->operator()(0) = grad->operator()(1) = 0;
             }
         } else {
             d = 0;
@@ -141,7 +179,7 @@ typedef struct Rectangle
         }
         // std::cout << "[x1:" << x1 << " y1:" << y1 << " x:" << x(0) << " y:" << x(1) << " d:" << d << "]" << std::endl;
         return d;
-        } else {
+     } else {
             // double d = 0;
             // if (grad != nullptr) {
             //   grad->operator()(0) = grad->operator()(1) = 0;
@@ -161,8 +199,9 @@ typedef struct Rectangle
                     double dx = (lb * (lb * x1 - la * y1) - la * lc) / l2 - x1;
                     double dy = (la * (la * y1 - lb * x1) - lb * lc) / l2 - y1;
                     double norm_dxdy = std::max(std::sqrt(dx * dx + dy * dy), 0.01);//note 0.01
-                    grad->operator()(0) = dx / norm_dxdy;//与中心距离的比值
-                    grad->operator()(1) = dy / norm_dxdy;
+                    grad->operator()(0) = -dx / norm_dxdy;//与中心距离的比值，内部 x1-x.
+                    grad->operator()(1) = -dy / norm_dxdy;
+                    // grad->operator()(0) = grad->operator()(1) = 0;
                     cout << grad->operator()(0) << "  " << grad->operator()(1) << endl;
                 }
                 }
@@ -214,7 +253,7 @@ public:
     ~CorridorGen2D(){};
     Rectangle generateRect(Ev3 pt);
     std::vector<Rectangle> corridorGeneration(std::vector<Ev3> path);
-    void distance(const double x1,const double y1, Evx* grad);
+    double dist_field(const double x1,const double y1, Evx* grad);
 
 };
 
@@ -245,25 +284,31 @@ CorridorGen2D::CorridorGen2D(ros::NodeHandle nh,
     ROS_WARN_STREAM("[corridor] param | is debug           : " << is_debug_);
 }
 
-void CorridorGen2D::distance(const double x1,const double y1, Evx* grad=nullptr)
+double CorridorGen2D::dist_field(const double x1,const double y1, Evx* grad=nullptr)
 {
-    int m=4;
-    Emx A(m,2);
-    Emx poly(m,4);
-    Evx b(m);
-    poly<<1,1,
-          5,1,
-          5,4,
-          1,4;
-    
-    int j=4-1;//尾部
-    for(int k=0;k<m;++k){
-        // 边对应起始点 一般式：Ax+By+C=O（AB≠0）
-        A(k,0)=poly(k,1)-poly(j,1);
-        A(k,1)=poly(j,0)-poly(k,0);
-        b(k)=A(k,0)*poly(j,0)+A(k,1)*poly(j,1);
-        j=k;
+    double d0=1e6,d1=1e6;
+    Evx g1(2);
+    g1 << 0, 0;    
+    //TODO 利用二分法高效FIND
+    for(int k=0;k<static_cast<int>(last_rect_list.size());k++){
+        last_rect_list[k].setAb();
+        d1=last_rect_list[k].distance(x1,y1,&g1);
+        // ROS_INFO_STREAM("D1 ="<<d1);
+        if(d1<d0){//距离障碍物最小距离 内部为负，但需要取相反数
+            d0=d1;
+            if(grad!=nullptr){
+                grad->operator()(0)=g1(0);
+                grad->operator()(1)=g1(1);
+            }
+            
+        // cout <<"update grad "<< grad->operator()(0) << "  " << grad->operator()(1) << endl;
+
+        }
     }
+        // ROS_INFO_STREAM("----------------D0 ="<<d0);
+
+    return -d0;
+    
 
 
 }
@@ -507,53 +552,7 @@ bool CorridorGen2D::isContain(Rectangle this_rect, Rectangle last_rect)
         return false;
     }
 }
-std::vector<Rectangle> CorridorGen2D::corridorGeneration(std::vector<Ev3> path)
-{
-    ros::Time corridor_start_time = ros::Time::now();
-    // recored
-    start_point_ = path.front();
-    end_point_ = path.back();
 
-    std::vector<Rectangle> rect_list;
-    Rectangle last_rect;
-    for (size_t i = 0; i < path.size(); i++)
-    {
-        Rectangle rect = generateRect(path[i]);
-        auto result = inflateRect(rect, last_rect);
-        if (!result.second)
-        {
-            continue;
-        }
-        rect_list.emplace_back(result.first);
-        last_rect = result.first;
-    }
-    std::vector<Rectangle> rect_list_new = simpleCorridor(rect_list);
-    // cross rect
-    for (size_t i = 1; i < rect_list_new.size(); i++)
-    {
-        Rectangle *cross_rect = new Rectangle();
-        calRectCross(rect_list_new[i - 1], rect_list_new[i], cross_rect);
-        rect_list_new[i - 1].cross_rect = cross_rect;
-    }
-    timeAllocation(rect_list_new);
-    if (is_debug_)
-    {
-        ROS_INFO_STREAM(" corridor time allocation: ");
-        for (size_t i = 0; i < rect_list_new.size(); i++)
-        {
-            std::cout << " " << rect_list_new[i].t;
-        }
-        std::cout << std::endl;
-    }
-    ROS_INFO_STREAM("\033[1;32m[corridor] | corridor size: " << rect_list_new.size() << ".\033[0m");
-    ROS_INFO_STREAM("\033[1;32m[corridor] | corridor gen time: " << (ros::Time::now() -
-                                                                     corridor_start_time)
-                                                                            .toSec() *
-                                                                        1000
-                                                                 << " (ms) \033[0m");
-    last_rect_list.assign(rect_list_new.begin(),rect_list_new.end()); //赋值
-    return rect_list_new;
-}
 /*
   如何高效的判断两个矩形相交?
   在本示例中，矩形在坐标系中没有旋转
@@ -734,4 +733,50 @@ void CorridorGen2D::timeAllocation(std::vector<Rectangle> &corridor)
         corridor[k].t = dtxyz;
     }
 }
+std::vector<Rectangle> CorridorGen2D::corridorGeneration(std::vector<Ev3> path)
+{
+    ros::Time corridor_start_time = ros::Time::now();
+    // recored
+    start_point_ = path.front();
+    end_point_ = path.back();
 
+    std::vector<Rectangle> rect_list;
+    Rectangle last_rect;
+    for (size_t i = 0; i < path.size(); i++)
+    {
+        Rectangle rect = generateRect(path[i]);
+        auto result = inflateRect(rect, last_rect);
+        if (!result.second)
+        {
+            continue;
+        }
+        rect_list.emplace_back(result.first);
+        last_rect = result.first;
+    }
+    std::vector<Rectangle> rect_list_new = simpleCorridor(rect_list);
+    // cross rect
+    for (size_t i = 1; i < rect_list_new.size(); i++)
+    {
+        Rectangle *cross_rect = new Rectangle();
+        calRectCross(rect_list_new[i - 1], rect_list_new[i], cross_rect);
+        rect_list_new[i - 1].cross_rect = cross_rect;
+    }
+    timeAllocation(rect_list_new);
+    if (is_debug_)
+    {
+        ROS_INFO_STREAM(" corridor time allocation: ");
+        for (size_t i = 0; i < rect_list_new.size(); i++)
+        {
+            std::cout << " " << rect_list_new[i].t;
+        }
+        std::cout << std::endl;
+    }
+    ROS_INFO_STREAM("\033[1;32m[corridor] | corridor size: " << rect_list_new.size() << ".\033[0m");
+    ROS_INFO_STREAM("\033[1;32m[corridor] | corridor gen time: " << (ros::Time::now() -
+                                                                     corridor_start_time)
+                                                                            .toSec() *
+                                                                        1000
+                                                                 << " (ms) \033[0m");
+    last_rect_list.assign(rect_list_new.begin(),rect_list_new.end()); //赋值
+    return rect_list_new;
+}

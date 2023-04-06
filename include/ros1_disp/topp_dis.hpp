@@ -68,7 +68,7 @@ struct conicAlmToppDis {
       file << d(k,d.cols()-1)<<"\n";
     }
     file.close();
-    return r1ds.add_colored_path_strip2d(r1ds.id0++, topp2.q, v, v_min, v_max, 0.25, 0.1);
+    return r1ds.add_colored_path_strip2d(r1ds.id0++, topp2.q, v, v_min, v_max, 0.02, 0.1);
   }
 };
 
