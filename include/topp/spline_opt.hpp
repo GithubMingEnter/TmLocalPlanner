@@ -188,74 +188,7 @@ struct cubicSplineOpt {
     return 0;
   }
 
-  // parameter to q, dq_ds, d2q_ds2 for TOPP problem
-  // int param_to_q(const Mat& param, Vec& s, Mat& q, Mat& qv, Mat& qa, int segs) {
-  //   int num = param.rows();
-  //   int pts = num * segs + 1;
-  //   auto cubic_x = [&param](int i, double t) {
-  //     return param(i, 0) + param(i, 1) * t + param(i, 2) * t * t +
-  //            param(i, 3) * t * t * t;
-  //   };
-  //   auto cubic_y = [&](int i, double t) {
-  //     return param(i, 4) + param(i, 5) * t + param(i, 6) * t * t +
-  //            param(i, 7) * t * t * t;
-  //   };
-  //   auto dx_dt = [&](int i, double t) {
-  //     return param(i, 1) + 2 * param(i, 2) * t + 3 * param(i, 3) * t * t;
-  //   };
-  //   auto dy_dt = [&](int i, double t) {
-  //     return param(i, 5) + 2 * param(i, 6) * t + 3 * param(i, 7) * t * t;
-  //   };
-  //   auto ds_dt = [&](int i, double t) {
-  //     return std::sqrt(std::pow(dx_dt(i, t), 2) + std::pow(dy_dt(i, t), 2));
-  //   };
-  //   auto d2x_dt2 = [&](int i, double t) {
-  //     return 2 * param(i, 2) + 6 * param(i, 3) * t;
-  //   };
-  //   auto d2y_dt2 = [&](int i, double t) {
-  //     return 2 * param(i, 6) + 6 * param(i, 7) * t;
-  //   };
-  //   s.resize(pts);
-  //   q.resize(pts, 2);
-  //   qv.resize(pts, 2);
-  //   qa.resize(pts, 2);
-  //   double dt = 1.0 / segs;
-  //   double current_length = 0;
-  //   for (int i = 0; i < num; ++i) {
-  //     for (int j = 0; j < segs; ++j) {
-  //       double t = j * dt;
-  //       s(j + i * segs) = current_length;
-  //       q(j + i * segs, 0) = cubic_x(i, t);
-  //       q(j + i * segs, 1) = cubic_y(i, t);
-  //       // average by numeric integration in Simpson's rule
-  //       double dx_dt0 =
-  //           (dx_dt(i, t) + 4 * dx_dt(i, t + 0.5 * dt) + dx_dt(i, t + dt)) / 6;
-  //       double dy_dt0 =
-  //           (dy_dt(i, t) + 4 * dy_dt(i, t + 0.5 * dt) + dy_dt(i, t + dt)) / 6;
-  //       double ds_dt0 =
-  //           (ds_dt(i, t) + 4 * ds_dt(i, t + 0.5 * dt) + ds_dt(i, t + dt)) / 6;
-  //       current_length += dt * ds_dt0;
-  //       double d2x_dt20 =
-  //           (d2x_dt2(i, t) + 4 * d2x_dt2(i, t + 0.5 * dt) + d2x_dt2(i, t + dt)) /
-  //           6;
-  //       double d2y_dt20 =
-  //           (d2y_dt2(i, t) + 4 * d2y_dt2(i, t + 0.5 * dt) + d2y_dt2(i, t + dt)) /
-  //           6;
-  //       qv(j + i * segs, 0) = dx_dt0 / ds_dt0;
-  //       qv(j + i * segs, 1) = dy_dt0 / ds_dt0;
-  //       qa(j + i * segs, 0) = (d2x_dt20 * dy_dt0 - d2y_dt20 * dx_dt0) * dy_dt0 /
-  //                             std::pow(ds_dt0, 4);
-  //       qa(j + i * segs, 1) = (d2y_dt20 * dx_dt0 - d2x_dt20 * dy_dt0) * dx_dt0 /
-  //                             std::pow(ds_dt0, 4);
-  //     }
-  //   }
-  //   s(pts - 1) = current_length;
-  //   qv(pts - 1, 0) = qv(pts - 2, 0);
-  //   qv(pts - 1, 1) = qv(pts - 2, 1);
-  //   qa(pts - 1, 0) = qa(pts - 2, 0);
-  //   qa(pts - 1, 1) = qa(pts - 2, 1);
-  //   return 0;
-  // }
+  
   int param_to_q(const Mat& param, Vec& s, Mat& q, Mat& qv, Mat& qa, int segs) {
     int num = param.rows();
     int pts = num * segs + 1;

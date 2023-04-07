@@ -1,0 +1,35 @@
+## Simulation settings
+resolution 0.02
+interval_sim 100 # simulation timestep in milliseconds
+## Load a static map
+model(
+  name "empty"
+  bitmap "../map/play.pgm"
+  size [ 7.9 4.9 2.000 ]
+  pose [ 0.3 -0.8 0.0 0.000 ] # [ -4.060 -4.040 0.000 0.000 ]
+  color "gray30"
+)
+## Definition of a laser range finder
+define mylaser ranger(
+  sensor(
+    range [0.0 70.0] # maximum range
+    fov 270.0 # field of view
+    samples 270 # number of samples
+  )
+  # generic model properties
+  color "blue"
+  size [ 0.060 0.150 0.030 ]
+)
+## Spawn robot
+position(
+  name "robot"
+  size [ 0.200 0.180 0.150 ] # (x,y,z) - bounding box of the robot
+  origin [ 0.100 0.000 0.000 0.000] # correct center of rotation (x,y,z,beta)
+  drive "car" # kinematic model of a car-like robot
+  wheelbase 0.14 # distance between rear and front axles
+  mylaser(pose [ -0.100 0.000 -0.110 0.000 ]) # spawn laser sensor
+  #pose [ 8.0 21.5 0.0 0.0 ] # hori start # initial pose (x,y,z,beta[deg])
+  pose [ 0 0 0.000 0.000 ]# ver start
+)
+
+

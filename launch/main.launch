@@ -4,11 +4,11 @@
 
         <!--  ************** Stage Simulator ***************  -->
 	<!-- <node pkg="stage_ros" type="stageros" name="stageros" args="$(find teb_local_planner_tutorials)/stage/maze_carlike.world"> -->
-	<node pkg="stage_ros" type="stageros" name="stageros" args="$(find teb_local_planner_tutorials)/stage/empty.world">
+	<node pkg="stage_ros" type="stageros" name="stageros" args="$(find topp2)/stage/play.world">
 		<remap from="base_scan" to="scan"/>
   	</node>
 
-	<node name="map_server" pkg="map_server" type="map_server" args="$(find teb_local_planner_tutorials)/maps/empty.yaml" output="screen">
+	<node name="map_server" pkg="map_server" type="map_server" args="$(find topp2)/map/play.yaml" output="screen">
                 <param name="frame_id" value="map"/>
 	</node>
 
