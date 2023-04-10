@@ -15,28 +15,29 @@ struct conicAlmToppDis {
     Vec a, b, c, d;
     topp2.get_result(a, b, c, d);
     Vec v = b.cwiseSqrt();
+    std::cout<<"v = "<<v<<std::endl;
     std::ofstream file;
-    file.open("/home/ming/ros1_workspace/simulation_ws/src/topp/result/dtt1_q.csv");
+    file.open("/home/ming/ros1_workspace/testws/src/topp2/data/dtt1_q.csv");
     for(int k = 0; k < (int)topp2.q.rows(); ++k){
       file << topp2.q(k,0)<<" , "<<topp2.q(k,1)<<"\n";
     }
     file.close();
-    file.open("/home/ming/ros1_workspace/simulation_ws/src/topp/result/dtt1_qv.csv");
+    file.open("/home/ming/ros1_workspace/testws/src/topp2/data/dtt1_qv.csv");
     for(int k = 0; k < (int)topp2.qv.rows(); ++k){
       file << topp2.qv(k,0)<<" , "<<topp2.qv(k,1)<<"\n";
     }
     file.close();
-    file.open("/home/ming/ros1_workspace/simulation_ws/src/topp/result/dtt1_qa.csv");
+    file.open("/home/ming/ros1_workspace/testws/src/topp2/data/dtt1_qa.csv");
     for(int k = 0; k < (int)topp2.qa.rows(); ++k){
       file << topp2.qa(k,0)<<" , "<<topp2.qa(k,1)<<"\n";
     }
     file.close();
-    file.open("/home/ming/ros1_workspace/simulation_ws/src/topp/result/dtt1_s.csv");
+    file.open("/home/ming/ros1_workspace/testws/src/topp2/data/dtt1_s.csv");
     for(int k = 0; k < (int)topp2.s.size(); ++k){
       file << topp2.s(k)<<"\n";
     }
     file.close();
-    file.open("/home/ming/ros1_workspace/simulation_ws/src/topp/result/dtt1_a.csv");
+    file.open("/home/ming/ros1_workspace/testws/src/topp2/data/dtt1_a.csv");
     for(int k = 0; k < (int)a.rows(); ++k){
       for(int j = 0; j < (int)a.cols()-1; ++j){
         file << a(k,j)<<"  ";
@@ -44,7 +45,7 @@ struct conicAlmToppDis {
       file << a(k,a.cols()-1)<<"\n";
     }
     file.close();
-    file.open("/home/ming/ros1_workspace/simulation_ws/src/topp/result/dtt1_b.csv");
+    file.open("/home/ming/ros1_workspace/testws/src/topp2/data/dtt1_b.csv");
     for(int k = 0; k < (int)b.rows(); ++k){
       for(int j = 0; j < (int)b.cols()-1; ++j){
         file << b(k,j)<<"  ";
@@ -52,7 +53,7 @@ struct conicAlmToppDis {
       file << b(k,b.cols()-1)<<"\n";
     }
     file.close();
-    file.open("/home/ming/ros1_workspace/simulation_ws/src/topp/result/dtt1_c.csv");
+    file.open("/home/ming/ros1_workspace/testws/src/topp2/data/dtt1_c.csv");
     for(int k = 0; k < (int)c.rows(); ++k){
       for(int j = 0; j < (int)c.cols()-1; ++j){
         file << c(k,j)<<"  ";
@@ -60,7 +61,7 @@ struct conicAlmToppDis {
       file << c(k,c.cols()-1)<<"\n";
     }
     file.close();
-    file.open("/home/ming/ros1_workspace/simulation_ws/src/topp/result/dtt1_d.csv");
+    file.open("/home/ming/ros1_workspace/testws/src/topp2/data/dtt1_d.csv");
     for(int k = 0; k < (int)d.rows(); ++k){
       for(int j = 0; j < (int)d.cols()-1; ++j){
         file << d(k,j)<<"  ";

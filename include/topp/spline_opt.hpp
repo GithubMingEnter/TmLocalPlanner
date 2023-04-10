@@ -36,6 +36,7 @@ struct cubicSplineOpt {
 
   // variables for TOPP
   Vec s1;
+  Vec heading1;
   Mat q1, qv1, qa1;
 
   cubicSplineOpt(shared_ptr<CorridorGen2D> _scene, Mat& _path, double _step, double _c0 = 200, double _c1 = -10)
@@ -189,7 +190,7 @@ struct cubicSplineOpt {
   }
 
   
-  int param_to_q(const Mat& param, Vec& s, Mat& q, Mat& qv, Mat& qa, int segs) {
+  int param_to_q(const Mat& param, Vec& s, Mat& q, Mat& qv, Mat& qa, Vec& headings,int segs) {
     int num = param.rows();
     int pts = num * segs + 1;
     auto cubic_x = [&param](int i, double t) {
@@ -217,6 +218,7 @@ struct cubicSplineOpt {
       return 2 * param(i, 6) + 6 * param(i, 7) * t;
     };
     s.resize(pts);
+    headings.resize(pts);
     q.resize(pts, 2);
     qv.resize(pts, 2);
     qa.resize(pts, 2);
@@ -226,6 +228,7 @@ struct cubicSplineOpt {
       for (int j = 0; j < segs; ++j) {
         double t = j * dt;
         s(j + i * segs) = current_length;
+        
         q(j + i * segs, 0) = cubic_x(i, t);
         q(j + i * segs, 1) = cubic_y(i, t);
         // ROS_INFO("t= %f",t);
@@ -243,6 +246,7 @@ struct cubicSplineOpt {
         double d2y_dt20 =
             (d2y_dt2(i, t) + 4 * d2y_dt2(i, t + 0.5 * dt) + d2y_dt2(i, t + dt)) /
             6;
+        headings(j+i*segs)=std::atan2(dy_dt0,dx_dt0); //朝向角度
         qv(j + i * segs, 0) = dx_dt0 / ds_dt0;
         qv(j + i * segs, 1) = dy_dt0 / ds_dt0;
         qa(j + i * segs, 0) = (d2x_dt20 * dy_dt0 - d2y_dt20 * dx_dt0) * dy_dt0 /
@@ -252,6 +256,7 @@ struct cubicSplineOpt {
       }
     }
     s(pts - 1) = current_length;
+    headings(pts-1)=headings(pts - 2, 0);
     qv(pts - 1, 0) = qv(pts - 2, 0);//末端
     qv(pts - 1, 1) = qv(pts - 2, 1);
     qa(pts - 1, 0) = qa(pts - 2, 0);
@@ -360,7 +365,7 @@ struct cubicSplineOpt {
 
   // topp preparations
   int topp_prepare(int segs) {
-    return param_to_q(param1, s1, q1, qv1, qa1, segs);
+    return param_to_q(param1, s1, q1, qv1, qa1, heading1,segs);
   }
 };
   

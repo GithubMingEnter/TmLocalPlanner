@@ -36,6 +36,7 @@ date: 2023.4.5
 #include "traj_opti/CorridorGen2D.hpp"
 #include "traj_opti/TrajOpti.hpp"
 #include <mpc_car/mpc_car.hpp>
+#include "pid_controller.hpp"
 
 #include <Eigen/Eigen>
 #include <Eigen/Core>
@@ -102,6 +103,7 @@ private:
     bool init = false;
     double delay_ = 0.0;
     bool nmpc_ = false;
+    double speed_P, speed_I, speed_D, target_speed;
 
     bool PhrAlm_ = true; //debug
     double all_time_;
@@ -146,6 +148,7 @@ private:
     shared_ptr<Astar> a_star_search_;
     std::shared_ptr<vis::Visualization> vis_ptr_;
     std::shared_ptr<env::GridMap> env_ptr_;
+    std::shared_ptr<control::PIDController> speedPidControllerPtr_;
 
     Emx tqv;
     Emx tqxy;
@@ -155,47 +158,46 @@ private:
   void odomCallback(const nav_msgs::Odometry::ConstPtr& odom_msg)
   {
     ROS_INFO_STREAM_ONCE("ENTER odomCallback");
-    // current_state_.speed = odom_msg->twist.twist.linear.x;
-    // current_state_.steer = atan(wheelbase_length_*odom_msg->twist.twist.angular.z/current_state_.speed);
-    // geometry_msgs::TransformStamped transform_stamped;
     
-    // // tf::TransformListener transform_listener = new tf::TransformListener();
-    // try{
-    //     //TODO
-    //    transform_stamped = tf_buffer_.lookupTransform("map","odom",ros::Time(0));
-    //   //  ('map','base_link',ros::Time(0),ros::Duration(0.1));
+    geometry_msgs::TransformStamped transform_stamped;
+    
+    // tf::TransformListener transform_listener = new tf::TransformListener();
+    try{
+        //TODO
+       transform_stamped = tf_buffer_.lookupTransform("map","odom",ros::Time(0));
+      //  ('map','base_link',ros::Time(0),ros::Duration(0.1));
        
-    // }
-    // catch(tf2::TransformException& e){
-    //     ROS_WARN("%s",e.what());
+    }
+    catch(tf2::TransformException& e){
+        ROS_WARN("%s",e.what());
 
-    //     return ;
-    // }
-    // geometry_msgs::PoseStamped pose;
-    // pose.pose.position.x=transform_stamped.transform.translation.x;
-    // pose.pose.position.y=transform_stamped.transform.translation.y;
-    // pose.pose.position.z=transform_stamped.transform.translation.z;
-    // pose.pose.orientation=transform_stamped.transform.rotation;
+        return ;
+    }
+    geometry_msgs::PoseStamped pose;
+    pose.pose.position.x=transform_stamped.transform.translation.x;
+    pose.pose.position.y=transform_stamped.transform.translation.y;
+    pose.pose.position.z=transform_stamped.transform.translation.z;
+    pose.pose.orientation=transform_stamped.transform.rotation;
     
-    // // createCurrentPoseMarker(current_state_,pose);
-    // current_pose_rviz_pub_.publish(pose);
-    // car_m.pose.position=pose.pose.position;
-    //  car_m.pose.orientation=pose.pose.orientation;
-    // car_m.id=car_id++;
+    // createCurrentPoseMarker(current_state_,pose);
+    current_pose_rviz_pub_.publish(pose);
+    car_m.pose.position=pose.pose.position;
+    car_m.pose.orientation=pose.pose.orientation;
+    car_m.id=car_id++;
 
-    // vis_car_pub.publish(car_m);
+    vis_car_pub.publish(car_m);
 
-    // geometry_msgs::PoseStamped pose_trans,pose_tran_after;
-    // pose_trans.header.frame_id=odom_msg->header.frame_id;
-    // pose_trans.header.stamp=odom_msg->header.stamp;
-    // pose_trans.pose=odom_msg->pose.pose;
-    // tf2::doTransform(pose_trans,pose_tran_after,transform_stamped);
+    geometry_msgs::PoseStamped pose_trans,pose_tran_after;
+    pose_trans.header.frame_id=odom_msg->header.frame_id;
+    pose_trans.header.stamp=odom_msg->header.stamp;
+    pose_trans.pose=odom_msg->pose.pose;
+    tf2::doTransform(pose_trans,pose_tran_after,transform_stamped);
 
-    // tf::Quaternion q(pose_tran_after.pose.orientation.x,pose_tran_after.pose.orientation.y,
-    //                 pose_tran_after.pose.orientation.z,pose_tran_after.pose.orientation.w );
-    // tf::Matrix3x3 m(q);
-    // double roll,pitch;
-    // m.getRPY(roll,pitch,current_state_.yaw);//获取整车的姿态角
+    tf::Quaternion q(pose_tran_after.pose.orientation.x,pose_tran_after.pose.orientation.y,
+                    pose_tran_after.pose.orientation.z,pose_tran_after.pose.orientation.w );
+    tf::Matrix3x3 m(q);
+    double roll,pitch;
+    m.getRPY(roll,pitch,current_state_.yaw);//获取整车的姿态角
     
     double x = odom_msg->pose.pose.position.x;
     double y = odom_msg->pose.pose.position.y;
@@ -206,6 +208,12 @@ private:
     Eigen::Vector3d euler = qua.toRotationMatrix().eulerAngles(0, 1, 2);
     Eigen::Vector2d v(odom_msg->twist.twist.linear.x, odom_msg->twist.twist.linear.y);
     state_ << x, y, euler.z(), v.norm();
+
+    current_state_.yaw=euler.z();
+    current_state_.speed = odom_msg->twist.twist.linear.x;
+    current_state_.x=x;
+    current_state_.y=y;
+    current_state_.steer = atan(wheelbase_length_*odom_msg->twist.twist.angular.z/current_state_.speed);
     ROS_INFO_STREAM("STATE: "<<state_.transpose());
     
     ROS_INFO_STREAM_ONCE("LEAVE odomCallback");
@@ -231,10 +239,20 @@ private:
 
       
   }
+
+// 两点之间的距离
+double PointDistanceSquare(const VehicleState & point, const double x,
+                           const double y) {
+  double dx = point.x - x;
+  double dy = point.y - y;
+  return dx * dx + dy * dy;
+}
+int QueryNearestPointByPosition(const double x,const double y){
+  double d_min=PointDistanceSquare(current_state_,x,y);
+  int index_min=0;
+
+}
   void controlTimerCallback(const ros::TimerEvent& timer_event);
-
-
-
 public:
   void run();
 
@@ -262,6 +280,9 @@ public:
     pri_nh_.param<double>("step_s",step_s_,0.45);
     pri_nh_.param<double>("c0",c0_,5);
     pri_nh_.param<double>("c1",c1_,-18);
+    pri_nh_.param<double>("speed_P", speed_P, 0.4);                //读取PID参数
+    pri_nh_.param<double>("speed_I", speed_I, 0.1);
+    pri_nh_.param<double>("speed_D", speed_D, 0.0);
     pri_nh_.getParam("dt", dt_);
     pri_nh_.getParam("delay", delay_);
     pri_nh_.getParam("nmpc", nmpc_);
@@ -272,7 +293,8 @@ public:
     ROS_WARN_STREAM("delay_ = "<<delay_);
     vis_ptr_ = make_shared<vis::Visualization>(nh_);
     env_ptr_ = make_shared<env::GridMap>(nh_);
-    mpcPtr_ = std::make_shared<mpc_car::MpcCar>(nh_);
+    speedPidControllerPtr_ = std::shared_ptr<control::PIDController>(new control::PIDController(speed_P, speed_I, speed_D));
+    
     resolution_ = env_ptr_->getResolution();
     
     a_star_search_ = make_shared<Astar>(nh_, env_ptr_, vis_ptr_);

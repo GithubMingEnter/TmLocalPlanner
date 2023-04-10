@@ -15,7 +15,7 @@ struct splineOptDis{
   }
 
   int add_lbfgs_path(){
-    return r1ds.add_path_strip2d(r1ds.id0++, cso.points1, 0.02, 0.1, {1.0,1.0,0.0,1.0});
+    return r1ds.add_path_strip2d(r1ds.id0++, cso.points1, 0.02, 0.1, {1.0,1.0,0.5,1.0});
   }
 };
 
