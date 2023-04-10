@@ -7,7 +7,7 @@
 #include <iosqp/iosqp.hpp>
 
 #include "arc_spline/arc_spline.hpp"
-#include "lbfgs_raw.hpp"
+#include "mpc_car/lbfgs_raw.hpp"
 // #define dubug_mode 
 namespace mpc_car
 {
@@ -144,22 +144,27 @@ namespace mpc_car
     MpcCar(ros::NodeHandle &nh) : nh_(nh)
     {
       // load map
-      std::vector<double> track_points_x, track_points_y;
-      nh.getParam("track_points_x", track_points_x);
-      nh.getParam("track_points_y", track_points_y);
+      std::vector<double> track_points_x{0.0, 0.0881529971957, 0.176174074411, 0.26444464922, 0.352161020041, 0.435964941978, 0.524235546589, 0.611951947212, 0.697298526764, 0.782645106316, 0.866449058056, 0.953813552856, 1.0419665575, 1.13023710251, 1.21795356274, 1.30444824696, 1.38906276226, 1.47115325928, 1.54489696026, 1.62595593929, 1.71186709404, 1.80022442341, 1.88837742805, 1.97664797306, 2.06255912781, 2.15071201324, 2.23898267746, 2.23898267746, 2.3267326355, 2.41469717026, 2.50266170502, 2.59062623978, 2.67859077454, 2.76655507088, 2.85451960564, 2.9424841404, 3.03044867516, 3.11841320992, 3.20637750626, 3.29434204102, 3.38230657578, 3.47020840645, 3.55424618721, 3.62568378448, 3.67676234245};
+      
+      
+      std::vector<double> track_points_y{0.0, 0.00519799999893, -0.00250284560025, -0.00500766513869, -0.0151962423697, -0.0430327989161, -0.0455376170576, -0.0557261966169, -0.0785947442055, -0.101463295519, -0.129299849272, -0.142161101103, -0.136963099241, -0.139467924833, -0.149656504393, -0.167451292276, -0.192716866732, -0.225260943174, -0.273839056492, -0.308873653412, -0.329300284386, -0.329300284386, -0.334498286247, -0.331993460655, -0.311566829681, -0.30636882782, -0.308873653412, -0.308873653412, -0.311836987734, -0.309337049723, -0.306837141514, -0.304337203503, -0.301837295294, -0.299337387085, -0.296837449074, -0.294337540865, -0.291837602854, -0.289337694645, -0.286837786436, -0.284337848425, -0.281837940216, -0.282285392284, -0.307007700205, -0.357704818249, -0.428870290518};
+
+      // nh.getParam("track_points_x", track_points_x);
+      // nh.getParam("track_points_y", track_points_y);
       nh.getParam("desired_v", desired_v_);
       s_.setWayPoints(track_points_x, track_points_y);
       // load parameters
-      nh.getParam("ll", ll_);
-      nh.getParam("dt", dt_);
-      nh.getParam("rho", rho_);
-      nh.getParam("N", N_);
-      nh.getParam("rhoN", rhoN_);
-      nh.getParam("v_max", v_max_);
-      nh.getParam("a_max", a_max_);
-      nh.getParam("delta_max", delta_max_);
-      nh.getParam("ddelta_max", ddelta_max_);
-      nh.getParam("delay", delay_);
+      nh.param<double>("ll", ll_, 0.14);
+      nh.param<double>("dt", dt_, 1/20);
+      nh.param<int>("N", N_, 40);
+      nh.param<double>("rho", rho_, 1.0);
+      nh.param<double>("rhoN", rhoN_, 1.0);
+      nh.param<double>("v_max", v_max_,1.0 );
+      nh.param<double>("a_max", a_max_, 0.5);
+      nh.param<double>("delta_max", delta_max_, 1.3);
+      nh.param<double>("ddelta_max", ddelta_max_, 1.3);
+      nh.param<double>("delay", delay_, 0.125);
+
       history_length_ = std::ceil(delay_ / dt_);
 
       ref_pub_ = nh.advertise<nav_msgs::Path>("reference_path", 1);
@@ -586,8 +591,8 @@ namespace mpc_car
       double *x = new double[m * N_];
       Eigen::Map<Eigen::MatrixXd> inputs(x, m, N_);
       inputs.setZero();
-      lbfgs::lbfgs_parameter_t lbfgs_params;
-      lbfgs::lbfgs_load_default_parameters(&lbfgs_params);
+      lbfgs_raw::lbfgs_parameter_t lbfgs_params;
+      lbfgs_raw::lbfgs_load_default_parameters(&lbfgs_params);
       lbfgs_params.mem_size = 16;
       lbfgs_params.past = 3;
       lbfgs_params.g_epsilon = 0.0;
@@ -595,7 +600,7 @@ namespace mpc_car
       lbfgs_params.delta = 1e-4;
       lbfgs_params.line_search_type = 0;
       double minObjective;
-      auto ret = lbfgs::lbfgs_optimize(m * N_, x, &minObjective, &objectiveFunc, nullptr, nullptr, this, &lbfgs_params);
+      auto ret = lbfgs_raw::lbfgs_optimize(m * N_, x, &minObjective, &objectiveFunc, nullptr, nullptr, this, &lbfgs_params);
       std::cout << "\033[32m"
                 << "ret: " << ret << "\033[0m" << std::endl;
       VectorX xk = x0_observe_, xk_1;
@@ -608,7 +613,7 @@ namespace mpc_car
       }
       return ret;
     }
-    /**/
+    /*加入平滑项求解*/
     int solvePHRALM(const VectorX &x0_observe)
     {
       historyInput_.pop_front();
@@ -647,8 +652,8 @@ namespace mpc_car
       double *x = new double[m * N_];
       Eigen::Map<Emx> inputs(x, m, N_); // 转化为matrixXd(m,N_)
       inputs.setZero();                 //
-      lbfgs::lbfgs_parameter_t lbfgs_params;
-      lbfgs::lbfgs_load_default_parameters(&lbfgs_params);
+      lbfgs_raw::lbfgs_parameter_t lbfgs_params;
+      lbfgs_raw::lbfgs_load_default_parameters(&lbfgs_params);
       lbfgs_params.mem_size = 16;
       // lbfgs_params.past = 3;
       // lbfgs_params.g_epsilon = 0.0;
@@ -664,7 +669,7 @@ namespace mpc_car
       while (e_cons > req_e_cons || e_prec > req_e_prec)
       {
         times++;
-        ret = lbfgs::lbfgs_optimize(m * N_, x, &minObjective, &PHRALM_objectiveFunction, nullptr, nullptr, this, &lbfgs_params); // lbfgs_paramsvi
+        ret = lbfgs_raw::lbfgs_optimize(m * N_, x, &minObjective, &PHRALM_objectiveFunction, nullptr, nullptr, this, &lbfgs_params); // lbfgs_paramsvi
         double *grad11 = (double *)vecalloc(m * N_ * sizeof(double));
         double temp_cost = PHRALM_objectiveFunction(this, x, grad11, m * N_);
         ROS_INFO_STREAM("TEMP_COST CAL=" << temp_cost);
@@ -1092,8 +1097,8 @@ double ReferenceCostGradient(
     while(!found){
 
       // solve inner loop via L-BFGS
-      lbfgs::lbfgs_parameter_t lbfgs_params;
-      lbfgs::lbfgs_load_default_parameters(&lbfgs_params);
+      lbfgs_raw::lbfgs_parameter_t lbfgs_params;
+      lbfgs_raw::lbfgs_load_default_parameters(&lbfgs_params);
       lbfgs_params.mem_size = 16;
       lbfgs_params.past = 3;
       double g_e = phr_xi_ * std::min(1.0, kkt_1);
@@ -1107,7 +1112,7 @@ double ReferenceCostGradient(
       lbfgs_params.max_iterations = 1000;
       double minObjective, gradient_norm;
       int iteration_count;
-      // auto ret = lbfgs::lbfgs_optimize(m * N_,
+      // auto ret = lbfgs_raw::lbfgs_optimize(m * N_,
       //  x, 
       //  &minObjective,
       //   &objectiveFunc, 
@@ -1116,7 +1121,7 @@ double ReferenceCostGradient(
       //   this,
       //    &lbfgs_params);
 
-      ret = lbfgs::lbfgs_optimize(
+      ret = lbfgs_raw::lbfgs_optimize(
         m * N_, x, 
         &minObjective, 
         &PHRObjeciveFunction, 
@@ -1255,7 +1260,7 @@ double ReferenceCostGradient(
       std::cout<<"*************"<<std::endl;
       std::cout<<"out loop: "<<loop_count<<std::endl
         <<"inner loop: "<<iteration_count<<std::endl
-        <<"L-BFGS: "<<lbfgs::lbfgs_strerror(ret)<<std::endl
+        <<"L-BFGS: "<<lbfgs_raw::lbfgs_strerror(ret)<<std::endl
         <<"kkt_1: "<<kkt_1<<std::endl
         <<"gnorm: "<<gradient_norm<<std::endl
         <<"cost: "<<minObjective<<std::endl

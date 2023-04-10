@@ -22,8 +22,8 @@
     SOFTWARE.
 */
 
-#ifndef LBFGS_HPP
-#define LBFGS_HPP
+#ifndef LBFGS_RAW_HPP
+#define LBFGS_RAW_HPP
 
 #include <cmath>
 #include <cstdint>
@@ -32,7 +32,7 @@
 #include <cstring>
 #include <limits>
 
-namespace lbfgs {
+namespace lbfgs_raw {
 // ----------------------- Data Type Part -----------------------
 
 /**
@@ -1537,4 +1537,4 @@ inline const char *lbfgs_strerror(int err) {
 
 }  // namespace lbfgs
 
-#endif
+#endif  //LBFGS_RAW_HPP

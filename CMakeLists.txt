@@ -15,13 +15,14 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  ackermann_msgs
   OpenCV
   tf
 )
 # SET (TBB_DIR  ${PROJECT_SOURCE_DIR}/TBBConfig.cmake) 
 # find_package(TBB)
 set(QPOASES_INLUDE_DIRS /usr/local/include/qpOASES)
-
+find_package(osqp REQUIRED)
 
 find_package(Eigen3 REQUIRED)
 catkin_package(
@@ -62,7 +63,11 @@ include
 # target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES})
 add_executable(main_node src/main.cpp)
 add_dependencies(main_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(main_node ${catkin_LIBRARIES})
+target_link_libraries(main_node 
+  ${catkin_LIBRARIES}
+  osqp::osqp
+
+)
 
 add_executable(test_grad_node src/test/test_grad.cc)
 add_dependencies(test_grad_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

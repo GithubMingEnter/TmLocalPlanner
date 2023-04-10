@@ -4,19 +4,14 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Global Options1
-        - /Map1
         - /Goal1
         - /start1
-        - /A_star1
         - /A_star1/A_star_node1
         - /A_star1/A_star_final_wpts1
         - /A_star1/A_star_final_path1
         - /A_star1/Marker1
-        - /Corridor1
-        - /Axes1
-        - /Robot1
-        - /MarkerArray1
+        - /Marker1
+        - /Odometry1/Shape1
       Splitter Ratio: 0.43133047223091125
     Tree Height: 665
   - Class: rviz/Selection
@@ -36,7 +31,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: LaserScan
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -77,7 +72,7 @@ Visualization Manager:
       Marker Topic: /goal_point
       Name: Goal
       Namespaces:
-        goal_point: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -85,7 +80,7 @@ Visualization Manager:
       Marker Topic: /start_point
       Name: start
       Namespaces:
-        start_point: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Group
@@ -159,7 +154,7 @@ Visualization Manager:
           Marker Topic: /start_point
           Name: Marker
           Namespaces:
-            start_point: true
+            {}
           Queue Size: 100
           Value: true
       Enabled: true
@@ -169,7 +164,7 @@ Visualization Manager:
       Marker Topic: corridor
       Name: Corridor
       Namespaces:
-        corridor: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -196,6 +191,125 @@ Visualization Manager:
       Namespaces:
         {}
       Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /vis_car
+      Name: Marker
+      Namespaces:
+        car_m: true
+      Queue Size: 100
+      Value: true
+    - Angle Tolerance: 0.10000000149011612
+      Class: rviz/Odometry
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: true
+      Enabled: true
+      Keep: 100
+      Name: Odometry
+      Position Tolerance: 0.10000000149011612
+      Queue Size: 10
+      Shape:
+        Alpha: 0.5
+        Axes Length: 1
+        Axes Radius: 0.10000000149011612
+        Color: 255; 25; 0
+        Head Length: 0.10000000149011612
+        Head Radius: 0.10000000149011612
+        Shaft Length: 0.30000001192092896
+        Shaft Radius: 0.05000000074505806
+        Value: Arrow
+      Topic: /odom
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/LaserScan
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: LaserScan
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Flat Squares
+      Topic: /scan
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 25; 255; 0
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: reference_path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Queue Size: 10
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /reference_path
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 25; 255; 0
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Queue Size: 10
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /traj_delay
+      Unreliable: false
       Value: true
   Enabled: true
   Global Options:
@@ -224,7 +338,7 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: -0.034999996423721313
+      Angle: -0.02499999664723873
       Class: rviz/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
@@ -234,10 +348,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 154.0765838623047
+      Scale: 270.4833679199219
       Target Frame: <Fixed Frame>
-      X: 0.4679286479949951
-      Y: -1.0070278644561768
+      X: 1.9312583208084106
+      Y: -0.1176745817065239
     Saved:
       - Angle: 0
         Class: rviz/TopDownOrtho

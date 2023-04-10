@@ -35,6 +35,7 @@ date: 2023.4.5
 #include "map/GridMap.hpp"
 #include "traj_opti/CorridorGen2D.hpp"
 #include "traj_opti/TrajOpti.hpp"
+#include <mpc_car/mpc_car.hpp>
 
 #include <Eigen/Eigen>
 #include <Eigen/Core>
@@ -95,13 +96,26 @@ private:
     double step_s_;//离散点步长
     double c0_,c1_;
     double planning_frequency_;
+    // control
     double  control_frequency_;
+    std::shared_ptr<mpc_car::MpcCar> mpcPtr_;
+    bool init = false;
+    double delay_ = 0.0;
+    bool nmpc_ = false;
+
+    bool PhrAlm_ = true; //debug
+    double all_time_;
+    int times_=0;
+    double dt_ ;
     //车辆参数
     double wheelbase_length_;
     double v_min_,v_max_;
     double a_max_;
-    VehicleState current_state_;       
-    bool b_vehicle_state;
+    VehicleState current_state_;   
+    Eigen::Vector4d  state_;  
+      
+    bool b_vehicle_state;//获得odom
+    bool b_traj;//obtain trajectory
 
   // ROS
     ros::NodeHandle pri_nh_;
@@ -141,53 +155,63 @@ private:
   void odomCallback(const nav_msgs::Odometry::ConstPtr& odom_msg)
   {
     ROS_INFO_STREAM_ONCE("ENTER odomCallback");
-    current_state_.speed = odom_msg->twist.twist.linear.x;
-    current_state_.steer = atan(wheelbase_length_*odom_msg->twist.twist.angular.z/current_state_.speed);
-    geometry_msgs::TransformStamped transform_stamped;
+    // current_state_.speed = odom_msg->twist.twist.linear.x;
+    // current_state_.steer = atan(wheelbase_length_*odom_msg->twist.twist.angular.z/current_state_.speed);
+    // geometry_msgs::TransformStamped transform_stamped;
     
-    // tf::TransformListener transform_listener = new tf::TransformListener();
-    try{
-        //TODO
-       transform_stamped = tf_buffer_.lookupTransform("map","odom",ros::Time(0));
-      //  ('map','base_link',ros::Time(0),ros::Duration(0.1));
+    // // tf::TransformListener transform_listener = new tf::TransformListener();
+    // try{
+    //     //TODO
+    //    transform_stamped = tf_buffer_.lookupTransform("map","odom",ros::Time(0));
+    //   //  ('map','base_link',ros::Time(0),ros::Duration(0.1));
        
-    }
-    catch(tf2::TransformException& e){
-        ROS_WARN("%s",e.what());
+    // }
+    // catch(tf2::TransformException& e){
+    //     ROS_WARN("%s",e.what());
 
-        return ;
-    }
-    geometry_msgs::PoseStamped pose;
-    pose.pose.position.x=transform_stamped.transform.translation.x;
-    pose.pose.position.y=transform_stamped.transform.translation.y;
-    pose.pose.position.z=transform_stamped.transform.translation.z;
-    pose.pose.orientation=transform_stamped.transform.rotation;
+    //     return ;
+    // }
+    // geometry_msgs::PoseStamped pose;
+    // pose.pose.position.x=transform_stamped.transform.translation.x;
+    // pose.pose.position.y=transform_stamped.transform.translation.y;
+    // pose.pose.position.z=transform_stamped.transform.translation.z;
+    // pose.pose.orientation=transform_stamped.transform.rotation;
     
-    // createCurrentPoseMarker(current_state_,pose);
-    current_pose_rviz_pub_.publish(pose);
-    car_m.pose.position=pose.pose.position;
-     car_m.pose.orientation=pose.pose.orientation;
-    car_m.id=car_id++;
+    // // createCurrentPoseMarker(current_state_,pose);
+    // current_pose_rviz_pub_.publish(pose);
+    // car_m.pose.position=pose.pose.position;
+    //  car_m.pose.orientation=pose.pose.orientation;
+    // car_m.id=car_id++;
 
-    vis_car_pub.publish(car_m);
+    // vis_car_pub.publish(car_m);
 
-    geometry_msgs::PoseStamped pose_trans,pose_tran_after;
-    pose_trans.header.frame_id=odom_msg->header.frame_id;
-    pose_trans.header.stamp=odom_msg->header.stamp;
-    pose_trans.pose=odom_msg->pose.pose;
-    tf2::doTransform(pose_trans,pose_tran_after,transform_stamped);
+    // geometry_msgs::PoseStamped pose_trans,pose_tran_after;
+    // pose_trans.header.frame_id=odom_msg->header.frame_id;
+    // pose_trans.header.stamp=odom_msg->header.stamp;
+    // pose_trans.pose=odom_msg->pose.pose;
+    // tf2::doTransform(pose_trans,pose_tran_after,transform_stamped);
 
-    tf::Quaternion q(pose_tran_after.pose.orientation.x,pose_tran_after.pose.orientation.y,
-                    pose_tran_after.pose.orientation.z,pose_tran_after.pose.orientation.w );
-    tf::Matrix3x3 m(q);
-    double roll,pitch;
-    m.getRPY(roll,pitch,current_state_.yaw);//获取整车的姿态角
+    // tf::Quaternion q(pose_tran_after.pose.orientation.x,pose_tran_after.pose.orientation.y,
+    //                 pose_tran_after.pose.orientation.z,pose_tran_after.pose.orientation.w );
+    // tf::Matrix3x3 m(q);
+    // double roll,pitch;
+    // m.getRPY(roll,pitch,current_state_.yaw);//获取整车的姿态角
     
+    double x = odom_msg->pose.pose.position.x;
+    double y = odom_msg->pose.pose.position.y;
+    Eigen::Quaterniond qua(odom_msg->pose.pose.orientation.w,
+                         odom_msg->pose.pose.orientation.x,
+                         odom_msg->pose.pose.orientation.y,
+                         odom_msg->pose.pose.orientation.z);
+    Eigen::Vector3d euler = qua.toRotationMatrix().eulerAngles(0, 1, 2);
+    Eigen::Vector2d v(odom_msg->twist.twist.linear.x, odom_msg->twist.twist.linear.y);
+    state_ << x, y, euler.z(), v.norm();
+    ROS_INFO_STREAM("STATE: "<<state_.transpose());
     
     ROS_INFO_STREAM_ONCE("LEAVE odomCallback");
     b_vehicle_state=true;//获取到当前车辆的状态
   };
-
+/********goalCallback********/
   void goalCallback(const geometry_msgs::PoseStamped::ConstPtr &msg){
     ROS_INFO_STREAM("enter goalCallback");
     goal_pose.header=msg->header;
@@ -201,33 +225,10 @@ private:
     ROS_INFO_STREAM("leave goalCallback");
 
   }
+  
   void mainTimerCallback(const ros::TimerEvent& timer_event){
     ROS_INFO_ONCE("enter mainTimeCallback");    
-        geometry_msgs::Twist cmd_vel_msg;
-      if(b_global_path)
-      {
-        if(tqv.size()>t)
-        {
-          cmd_vel_msg.linear.x = tqv(t,0);
-          cmd_vel_msg.linear.y = tqv(t,1);
-          cmd_vel_msg.linear.z = 0;
 
-          cmd_vel_msg.angular.x = 0;
-          cmd_vel_msg.angular.y = 0;
-          cmd_vel_msg.angular.z = 0;//atan2(tqv(t,1),tqv(t,0));//y/x
-        }
-        else{
-          cmd_vel_msg.linear.x = 0;
-          cmd_vel_msg.linear.y = 0;
-          cmd_vel_msg.linear.z = 0;
-
-          cmd_vel_msg.angular.x = 0;
-          cmd_vel_msg.angular.y = 0;
-          cmd_vel_msg.angular.z = 0;//y/x
-        }
-        t++;
-        cmd_vel_pub_.publish(cmd_vel_msg);
-      }
       
   }
   void controlTimerCallback(const ros::TimerEvent& timer_event);
@@ -251,29 +252,39 @@ public:
     pri_nh_.param<std::string>("cmd_vel_topic",cmd_vel_topic_,"/cmd_vel");
     pri_nh_.param<std::string>("current_pose_rviz_topic",current_pose_rviz_topic_,"current_pose_rviz");
 
-    pri_nh_.param<double>("wheelbase_length",wheelbase_length_,1.0);
+    pri_nh_.param<double>("wheelbase_length",wheelbase_length_,0.15);
     pri_nh_.param<double>("v_max",v_max_,12.0);
     pri_nh_.param<double>("v_min",v_min_,0.0);
     pri_nh_.param<double>("a_max",a_max_,0.5);
     pri_nh_.param<double>("planning_frequency",planning_frequency_,5);
-    pri_nh_.param<double>("control_frequency",control_frequency_,20);
+    pri_nh_.param<double>("control_frequency",control_frequency_,50);
     pri_nh_.param<int>("obs_num",obs_num_,10);
     pri_nh_.param<double>("step_s",step_s_,0.45);
     pri_nh_.param<double>("c0",c0_,5);
     pri_nh_.param<double>("c1",c1_,-18);
+    pri_nh_.getParam("dt", dt_);
+    pri_nh_.getParam("delay", delay_);
+    pri_nh_.getParam("nmpc", nmpc_);
+    pri_nh_.getParam("PhrAlm", PhrAlm_);
+
     ROS_WARN_STREAM("v_max_ = "<<v_max_);
     ROS_WARN_STREAM("obs_num_ = "<<obs_num_);
+    ROS_WARN_STREAM("delay_ = "<<delay_);
     vis_ptr_ = make_shared<vis::Visualization>(nh_);
     env_ptr_ = make_shared<env::GridMap>(nh_);
+    mpcPtr_ = std::make_shared<mpc_car::MpcCar>(nh_);
     resolution_ = env_ptr_->getResolution();
     
     a_star_search_ = make_shared<Astar>(nh_, env_ptr_, vis_ptr_);
     vis_ptr_->registe<nav_msgs::Path>("a_star_final_path");
 
+
     current_pose_rviz_pub_ = nh_.advertise<geometry_msgs::PoseStamped>(current_pose_rviz_topic_, 1, true);
     goal_sub_=nh_.subscribe("/move_base_simple/goal",10,&TmLocalPlanner::goalCallback,this);
+    odom_sub_ = nh_.subscribe(odom_topic_,1,&TmLocalPlanner::odomCallback,this);
     vis_timer_=nh_.createTimer(ros::Duration(1.0/planning_frequency_),&TmLocalPlanner::mainTimerCallback,this);
     control_timer_=nh_.createTimer(ros::Duration(1.0/control_frequency_),&TmLocalPlanner::controlTimerCallback,this);
+    
     cmd_vel_pub_ = nh_.advertise<geometry_msgs::Twist>(cmd_vel_topic_, 1);
     vis_car_pub = nh_.advertise<visualization_msgs::Marker>("vis_car", 10);
     
@@ -289,6 +300,7 @@ public:
     car_m.color.r = car_m.color.g = car_m.color.b = car_m.color.a = 0.8;
     car_id=0;
 
+    dt_=1/control_frequency_; //离散时间
 
     
   }

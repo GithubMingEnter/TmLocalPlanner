@@ -8,11 +8,9 @@
     <node pkg = "topp2" type="publish_map_node" name="publish_map_node" output="screen"/>
 
      <node pkg="topp2" type="main_node" name="main_node" output="screen">
-        <param name="wheelbase_length"                  value="1.00" />
-        <param name="v_max"                             value="5.0"/>    
-        <param name="a_max"                             value="1.0"/> 
-         <param name="obs_num"                             value="11.0"/> 
+
        <rosparam file="$(find topp2)/config/topp.yaml" command = "load"/>
+        <rosparam file="$(find topp2)/config/mpc_car.yaml" command = "load"/>
         <param name="sreach_algorithm" value="0"/>
 
         <param name="Astar/is_four_neighborhood" value="false" />
