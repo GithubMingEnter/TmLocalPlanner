@@ -1,0 +1,8 @@
+<launch>
+
+
+    <node pkg="map_server" type="map_saver" name="map_saver" args="-f $(find topp2)/map"
+            output="screen">
+
+    </node>
+</launch>

@@ -44,8 +44,17 @@ double NormalizeAngle(const double angle) {
   return a - M_PI;
 }
 
-
-
-
+double deg_to_PI(const double atan2) 
+{
+    return atan2 * M_PI / 180;
+}
+double PI_to_deg(const double atan2) 
+{
+    return atan2 *  180 /  M_PI;
+}
+double norm_double(double dx,double dy)
+{
+    return sqrt(dx*dx+dy*dy);
+}
 
 #endif

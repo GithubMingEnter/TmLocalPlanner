@@ -4,7 +4,7 @@ interval_sim 100 # simulation timestep in milliseconds
 ## Load a static map
 model(
   name "empty"
-  bitmap "../map/play.pgm"
+  bitmap "../map/play_stage.pgm"
   size [ 7.9 4.9 2.000 ]
   pose [ 0.3 -0.8 0.0 0.000 ] # [ -4.060 -4.040 0.000 0.000 ]
   color "gray30"

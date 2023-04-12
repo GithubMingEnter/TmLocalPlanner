@@ -23,7 +23,6 @@ typedef Eigen::SparseMatrix<double> SpMat;
 struct conicALMTOPP2 {
   // path information
   Vec& s;
-  Vec& headings;
   Mat& q;
   Mat& qv;
   Mat& qa;
@@ -75,7 +74,7 @@ struct conicALMTOPP2 {
                 double _v_max, double _v_start, double _v_end)
       : s(_s),
         q(_q),
-        headings(_s),//TODO INITIAL
+        //TODO INITIAL
         qv(_qv),
         qa(_qa),
         mode(0),
