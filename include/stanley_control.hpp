@@ -1,7 +1,7 @@
 #ifndef C4C9A1DC_82BC_419B_9191_51D95D7DB618
 #define C4C9A1DC_82BC_419B_9191_51D95D7DB618
 #include "common.h"
-#include "main.hpp"
+#include "../src/main.hpp"
 #include "pid_controller.hpp"
 
 namespace control {

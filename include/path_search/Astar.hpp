@@ -19,7 +19,7 @@
 #include <queue>
 #include "map/GridMap.hpp"
 #include "vis/visualization.hpp"
-#include "path_search/Common.h"
+
 
 using namespace std;
 
@@ -104,6 +104,7 @@ typedef priority_queue<Node*, vector<Node*> ,Compare > PQ;
 
 
 } //namespace Tm
+
 class Astar
 {
 private:

@@ -10,7 +10,7 @@
      <node pkg="topp2" type="main_node" name="main_node" output="screen">
 
        <rosparam file="$(find topp2)/config/topp.yaml" command = "load"/>
-        <rosparam file="$(find topp2)/config/mpc_car.yaml" command = "load"/>
+        <!-- <rosparam file="$(find topp2)/config/mpc_car.yaml" command = "load"/> -->
         <param name="sreach_algorithm" value="0"/>
 
         <param name="Astar/is_four_neighborhood" value="false" />

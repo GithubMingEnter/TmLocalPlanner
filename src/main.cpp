@@ -119,7 +119,7 @@ void TmLocalPlanner::run()
 
       splineOptDis disp_cso(disp_rviz, *cso);
       disp_cso.add_lbfgs_path_points();
-      disp_cso.add_lbfgs_path();
+      // disp_cso.add_lbfgs_path();
 
       conicAlmToppDis disp_topp(disp_rviz, *topp2);
       disp_topp.add_topp_trajectory_points(v_min_, v_max_);
@@ -127,7 +127,7 @@ void TmLocalPlanner::run()
       ROS_WARN_STREAM("Optimal traj time: | time3 --> " << (ros::Time::now() - time1).toSec() * 1000 << " (ms)");
 
       ROS_WARN_STREAM("total generate trajectory time: | total --> " << (ros::Time::now() - a_star_search_time).toSec() * 1000 << " (ms)");
-      b_traj = true;
+      // b_traj = true;
     }
     disp_rviz.send();
     ros::spinOnce();
