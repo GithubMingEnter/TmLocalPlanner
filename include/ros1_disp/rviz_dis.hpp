@@ -201,14 +201,14 @@ struct rviz1DisSimp {
     std_msgs::ColorRGBA cl;
     pl.z = height;
     std::ofstream file;
-    file.open("/home/ming/ros1_workspace/simulation_ws/src/topp/result/dt_v.csv");
+    file.open("/home/ming/ros1_workspace/testws/src/topp2/data/dt_v.csv");
     for (int k = 0; k < path.rows() - 1; ++k) {
       std::cout<< path(k,0) << " "<<path(k,1)<<std::endl;
       pl.x = path(k, 0);
       pl.y = path(k, 1);
     
     
-    file <<val(k) <<"\n";
+      file <<val(k) <<"\n";
     
     
       // ROS_INFO_STREAM(" VAL = "<<val(k));

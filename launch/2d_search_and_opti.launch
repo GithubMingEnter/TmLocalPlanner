@@ -25,7 +25,7 @@
         <param name="traj_opti/order" value="5" />
         <param name="traj_opti/min_order" value="4" />
 
-        <param name="traj_opti/traj_type" value="1" />  <!--曲线类型 0 多项式 1 贝塞尔-->
+        <param name="traj_opti/traj_type" value="0" />  <!--曲线类型 0 多项式 1 贝塞尔-->
         <param name="traj_opti/is_debug" value="true" />
     </node>
     

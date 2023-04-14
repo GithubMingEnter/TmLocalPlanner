@@ -127,12 +127,14 @@ private:
 
   bool b_vehicle_state = false; // 获得odom
   bool b_traj = false;          // obtain trajectory
+  bool b_global_=false;
 
   // ROS
   ros::NodeHandle pri_nh_;
   ros::NodeHandle nh_;
+   nav_msgs::Path g_path_;
   // Subscribers and Publishers
-  ros::Subscriber odom_sub_, goal_sub_;
+  ros::Subscriber odom_sub_, goal_sub_,global_path_sub_;
   ros::Subscriber obstacles_sub_;
 
   ros::Publisher current_pose_rviz_pub_, vis_car_pub;
@@ -152,6 +154,7 @@ private:
 
   geometry_msgs::PoseStamped goal_pose;
   std::vector<Eigen::Vector3d> startGoal;
+  std::vector<Eigen::Vector3d> Ev3_path_;
 
   // shared_ptr<GraphGroupSearch> graph_sreach_;
   shared_ptr<Astar> a_star_search_;
@@ -244,6 +247,25 @@ private:
     ROS_INFO_STREAM("leave goalCallback");
   }
 
+  void pathCallback(const nav_msgs::Path::ConstPtr &path_msg){
+    ROS_INFO_STREAM("enter pathCallback");
+    Ev3_path_.clear();//
+    g_path_=*path_msg; //复制
+   for(std::vector<geometry_msgs::PoseStamped>::const_iterator it=g_path_.poses.begin();it!=g_path_.poses.end();++it){
+    // TODO YAW角不对
+    tf::Quaternion q(it->pose.orientation.x, it->pose.orientation.y,
+                     it->pose.orientation.z, it->pose.orientation.w);
+    tf::Matrix3x3 m(q);
+    double roll,pitch,yaw;
+    m.getRPY(roll,pitch,yaw);
+    Ev3_path_.emplace_back(it->pose.position.x,it->pose.position.y,yaw);
+    
+   }
+   b_global_=true;
+    ROS_INFO_STREAM("leave pathCallback");
+
+  }
+  
   void mainTimerCallback(const ros::TimerEvent &timer_event)
   {
     ROS_INFO_ONCE("enter mainTimeCallback");
@@ -304,13 +326,14 @@ public:
                                                                pri_nh_(pri_nh)
   {
     pri_nh_.param<int>("sreach_algorithm", sreach_algorithm_, 0);
-    std::string odom_topic_;
+    std::string odom_topic_,global_path_topic_;
     std::string cmd_vel_topic_;
     std::string current_pose_rviz_topic_;
     int obs_num_ = 6;
     pri_nh_.param<std::string>("odom_topic", odom_topic_, "/odom");
     pri_nh_.param<std::string>("cmd_vel_topic", cmd_vel_topic_, "/cmd_vel");
     pri_nh_.param<std::string>("current_pose_rviz_topic", current_pose_rviz_topic_, "current_pose_rviz");
+    pri_nh_.param<std::string>("global_path_topic", global_path_topic_, "/move_base/HybridAStarPlanner/plan");
 
     pri_nh_.param<double>("wheelbase_length", wheelbase_length_, 0.15);
     pri_nh_.param<double>("v_max", v_max_, 12.0);
@@ -351,6 +374,7 @@ public:
     current_pose_rviz_pub_ = nh_.advertise<geometry_msgs::PoseStamped>(current_pose_rviz_topic_, 1, true);
     goal_sub_ = nh_.subscribe("/move_base_simple/goal", 10, &TmLocalPlanner::goalCallback, this);
     odom_sub_ = nh_.subscribe(odom_topic_, 1, &TmLocalPlanner::odomCallback, this);
+    global_path_sub_ = nh_.subscribe(global_path_topic_, 1, &TmLocalPlanner::pathCallback, this);
     vis_timer_ = nh_.createTimer(ros::Duration(1.0 / planning_frequency_), &TmLocalPlanner::mainTimerCallback, this);
     control_timer_ = nh_.createTimer(ros::Duration(1.0 / control_frequency_), &TmLocalPlanner::controlTimerCallback, this);
 
@@ -371,6 +395,7 @@ public:
 
     dt_ = 1 / control_frequency_; // 离散时间
   }
+
 };
 
 #endif /* BA380FFA_A832_4EE6_A6BB_8C0278097C3B */

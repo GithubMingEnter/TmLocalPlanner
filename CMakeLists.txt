@@ -16,6 +16,9 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   ackermann_msgs
+  tf2_ros
+  costmap_2d
+  pluginlib
   OpenCV
   tf
 )
@@ -61,6 +64,12 @@ include
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/main.cc)
 # target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES})
+add_executable(test_hyA_node  src/test/test_hyA.cc)
+add_dependencies(test_hyA_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(test_hyA_node
+  ${catkin_LIBRARIES}
+)
+
 add_executable(main_node src/main.cpp)
 add_dependencies(main_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(main_node 

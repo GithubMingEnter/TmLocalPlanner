@@ -35,70 +35,68 @@ void TmLocalPlanner::run()
     startGoal.clear();
     is_start_set = is_goal_set = false;
     // get s e
-    while (startGoal.size() < 3)
-    {
-      if (startGoal.size() == 0)
-      {
-        ROS_INFO_ONCE("set {start point} in rviz");
-      }
+    // while (startGoal.size() < 3)
+    // {
+    //   if (startGoal.size() == 0)
+    //   {
+    //     ROS_INFO_ONCE("set {start point} in rviz");
+    //   }
 
-      if (startGoal.size() == 1)
-      {
+    //   if (startGoal.size() == 1)
+    //   {
 
-        if (!is_start_set)
-        {
+    //     if (!is_start_set)
+    //     {
 
-          std::cout << "....." << startGoal.back().transpose() << std::endl;
-          vis_ptr_->visualize2dPoint("start_point", startGoal.back(), 2 * resolution_, vis::Color::green);
-          is_start_set = true;
+    //       std::cout << "....." << startGoal.back().transpose() << std::endl;
+    //       vis_ptr_->visualize2dPoint("start_point", startGoal.back(), 2 * resolution_, vis::Color::green);
+    //       is_start_set = true;
 
-          ROS_INFO("set {goal point} in rviz");
-        }
-      }
-      if (startGoal.size() == 2)
-      {
+    //       ROS_INFO("set {goal point} in rviz");
+    //     }
+    //   }
+    //   if (startGoal.size() == 2)
+    //   {
 
-        if (!is_goal_set)
-        {
+    //     if (!is_goal_set)
+    //     {
 
-          std::cout << "....." << startGoal.back().transpose() << std::endl;
-          vis_ptr_->visualize2dPoint("goal_point", startGoal.back(), 2 * resolution_, vis::Color::green);
-          is_goal_set = true;
+    //       std::cout << "....." << startGoal.back().transpose() << std::endl;
+    //       vis_ptr_->visualize2dPoint("goal_point", startGoal.back(), 2 * resolution_, vis::Color::green);
+    //       is_goal_set = true;
 
-          ROS_INFO("clicked point to start!!!");
-        }
-      }
-      ros::spinOnce();
-      loop_rate.sleep();
-    }
+    //       ROS_INFO("clicked point to start!!!");
+    //     }
+    //   }
+    //   ros::spinOnce();
+    //   loop_rate.sleep();
+    // }
     // A-star search and opti
     ros::Time a_star_search_time = ros::Time::now();
     // 1.fornt-end path search
 
-    bool a_star_res = a_star_search_->search(startGoal[0], startGoal[1]);
-    if (a_star_res && !b_traj)
+    if (b_global_ && !b_traj)
     {
       disp_rviz.ma.markers.clear(); // 清理绘制图形
-      std::vector<Ev3> final_path = a_star_search_->getPathInWorld();
 
-      vis_ptr_->visPath("a_star_final_path", pt_vec);
+      vis_ptr_->visPath("a_star_final_path", Ev3_path_);
       ROS_WARN_STREAM("A star search time: | time1 --> " << (ros::Time::now() - a_star_search_time).toSec() * 1000 << " (ms)");
 
       // 2. corridor generte
       ros::Time time1 = ros::Time::now();
       shared_ptr<CorridorGen2D> corridor_gen = make_shared<CorridorGen2D>(pri_nh_, env_ptr_, vis_ptr_, start_vel);
-      std::vector<Rectangle> corridor = corridor_gen->corridorGeneration(pt_vec);
+      std::vector<Rectangle> corridor = corridor_gen->corridorGeneration(Ev3_path_);
 
       ROS_INFO_STREAM("corridor size: " << corridor.size());
       vis_ptr_->visCorridor("corridor", corridor, vis::Color::blue);
       ROS_WARN_STREAM("corridor_gen time: | time1 --> " << (ros::Time::now() - time1).toSec() * 1000 << " (ms)");
 
       time1 = ros::Time::now();
-      astar_path.resize(pt_vec.size(), 2);
+      astar_path.resize(Ev3_path_.size(), 2);
       Vec dist_grad(2);
-      for (int i = 0; i < pt_vec.size(); i++)
+      for (int i = 0; i < Ev3_path_.size(); i++)
       {
-        astar_path.row(i) = pt_vec[i].head(2);
+        astar_path.row(i) = Ev3_path_[i].head(2);
         // corridor_gen->dist_field(astar_path(i,0),astar_path(i,1),&dist_grad);
       }
 
@@ -128,6 +126,8 @@ void TmLocalPlanner::run()
 
       ROS_WARN_STREAM("total generate trajectory time: | total --> " << (ros::Time::now() - a_star_search_time).toSec() * 1000 << " (ms)");
       // b_traj = true;
+      
+      b_global_=false;//reset 
     }
     disp_rviz.send();
     ros::spinOnce();
