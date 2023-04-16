@@ -97,7 +97,10 @@ private:
   float resolution_;
   // planning
   double step_s_; // 离散点步长
-  double c0_, c1_;
+  double c0_, c1_; //势力场参数
+  double goal_tolerance_;
+  double c_;//// 前视常数
+  double lam_; // 前视距离系数
   double planning_frequency_;
   std::shared_ptr<cubicSplineOpt> cso;
   std::shared_ptr<conicALMTOPP2> topp2;
@@ -126,7 +129,7 @@ private:
   Eigen::Vector4d state_;
 
   bool b_vehicle_state = false; // 获得odom
-  bool b_traj = false;          // obtain trajectory
+  bool b_traj_ = false;          // obtain trajectory
   bool b_global_=false;
   bool reach_goal_=false;
   bool is_track_=false;
@@ -234,66 +237,7 @@ private:
     current_state_.steer = atan(wheelbase_length_ * odom_msg->twist.twist.angular.z / current_state_.speed);
     // ROS_INFO_STREAM("STATE: "<<state_.transpose());
     
-    if(reach_goal_){
-      pub_zero();
-      
-    }
-    else{
-      if( !ref_global_path_.poses.empty()&&b_temp){
-        if(norm_double(current_state_.x-goal_pose.pose.position.x,current_state_.y-goal_pose.pose.position.y)<0.3)
-        {
-          ROS_INFO_STREAM("Goal reached");
-          reach_goal_=true;
-          pub_zero();
-        }
-        else{
-          double lam = 0.1; // 前视距离系数
-          double c=0.3; // 前视常数
-          double ld=0.4;//lam*current_state_.speed+c;//前视距离范围
-
-          // TODO ERROR
-          vector<double> dists;
-          int match_index=QueryNearestPointByPosition(current_state_,dists);
-          //  double min_ind = min_element(dists.begin(),dists.end())-dists.begin(); //返回vector最小元素的下标
-          
-          double match_x=topp2->q(match_index,0);
-          double match_y=topp2->q(match_index,1);
-          double match_yaw=cso->heading1(match_index);
-          double delta_l=PointDistanceSquare(current_state_, match_x, match_y); //norm_double(current_state_.x-match_x,current_state_.y-match_y);//前向距离实际点
-          vector<double> match_array;
-          double alpha;
-          for(int di=0;di<dists.size();di++){
-            if(dists[di]>ld-0.3 && dists[di]<ld+0.3)
-            {// TODO 终点距离0.3
-              match_array.emplace_back(dists[di]);
-              alpha=cso->heading1(di)-current_state_.yaw;
-              if(abs(alpha)<M_PI/4 ){
-                match_index=di;//update
-                
-                break;
-              }
-            }
-              
-          }
-         
-          delta_l=dists[match_index]; 
-          double R=delta_l/(2*sin(alpha));//为何不是wheel_base
-          double delta=std::atan(wheelbase_length_/R);//std::atan2(wheelbase_length_,);//     atan2(2*wheelbase_length_*sin(alpha),ld);
-          delta=limit_deg(delta,PI_to_deg(1.0));
-          delta=std::abs(delta)<0.1 ? 0 :delta;
-          geometry_msgs::Twist cmd_vel_msg;
-          cmd_vel_msg.linear.x = speed_pid_control(0.5);
-          cmd_vel_msg.linear.y = 0;
-          cmd_vel_msg.linear.z = 0;
-          cmd_vel_msg.angular.x = 0;
-          cmd_vel_msg.angular.y = 0;
-          cmd_vel_msg.angular.z = delta;
-          if(is_track_)
-            cmd_vel_pub_.publish(cmd_vel_msg);
-
-        }
-      }
-    }
+    
 
     ROS_INFO_STREAM_ONCE("LEAVE odomCallback");
     b_vehicle_state = true; // 获取到当前车辆的状态
@@ -311,6 +255,7 @@ private:
   {
     ROS_INFO_STREAM("enter goalCallback");
     reach_goal_=false; //重置
+    b_traj_=false;//待优化
     goal_pose.header = msg->header;
     goal_pose.pose = msg->pose;
     tf::Quaternion q(msg->pose.orientation.x, msg->pose.orientation.y,
@@ -337,6 +282,7 @@ private:
     
    }
    b_global_=true;
+   b_traj_=false;//未优化
     ROS_INFO_STREAM("leave pathCallback");
 
   }
@@ -391,9 +337,9 @@ private:
   double speed_pid_control(double targetSpeed)
   {
     double ego_speed = current_state_.speed;
-    // 位置误差
+    
     double v_err = targetSpeed - ego_speed; // 速度误差
-    cout << "v_err: " << v_err << " targetSpeed_ is " << targetSpeed << endl;
+    ROS_INFO_STREAM(  "v_err: " << v_err << " targetSpeed_ is " << targetSpeed);
     double speed_cmd =
         speedPidControllerPtr_->Control(v_err, 1 / control_frequency_);
     return speed_cmd;
@@ -402,9 +348,9 @@ private:
   double head_pid_control(double target_head)
   {
     const double ego_head = current_state_.yaw;
-    // 位置误差
     double head_err = NormalizeAngle(target_head - ego_head); // 角度误差
-    cout << "target_head: " << target_head << "\n  head_err is " << head_err << endl;
+    infoD("target_head: ",target_head);
+    infoD("head_err is ",head_err);
     double angluar_cmd =
         headPidControllerPtr_->Control(head_err, 1 / control_frequency_);
     return angluar_cmd;
@@ -430,9 +376,9 @@ public:
     pri_nh_.param<std::string>("global_path_topic", global_path_topic_, "/move_base/HybridAStarPlanner/plan");
 
     pri_nh_.param<double>("wheelbase_length", wheelbase_length_, 0.15);
-    pri_nh_.param<double>("v_max", v_max_, 12.0);
+    pri_nh_.param<double>("v_max", v_max_, 5.0);
     pri_nh_.param<double>("v_min", v_min_, 0.0);
-    pri_nh_.param<double>("a_max", a_max_, 0.5);
+    pri_nh_.param<double>("a_max", a_max_, 1.0);
     pri_nh_.param<double>("planning_frequency", planning_frequency_, 5);
     pri_nh_.param<double>("control_frequency", control_frequency_, 50);
     pri_nh_.param<int>("obs_num", obs_num_, 10);
@@ -447,6 +393,10 @@ public:
     pri_nh_.param<double>("head_I", head_I, 0.1);
     pri_nh_.param<double>("head_D", head_D, 0.0);
     pri_nh_.param<bool>("is_track",is_track_,true);
+    pri_nh_.param<double>("goal_tolerance",goal_tolerance_,0.3);
+    pri_nh_.param<double>("c", c_, 0.1);
+    pri_nh_.param<double>("lam", lam_, 0.1);
+
     pri_nh_.getParam("dt", dt_);
     pri_nh_.getParam("delay", delay_);
     pri_nh_.getParam("nmpc", nmpc_);
@@ -455,6 +405,9 @@ public:
     ROS_WARN_STREAM("v_max_ = " << v_max_);
     ROS_WARN_STREAM("obs_num_ = " << obs_num_);
     ROS_WARN_STREAM("delay_ = " << delay_);
+    // ROS Multi thread
+    ros::AsyncSpinner spinner(4);
+    spinner.start();
     vis_ptr_ = make_shared<vis::Visualization>(nh_);
     env_ptr_ = make_shared<env::GridMap>(nh_);
     speedPidControllerPtr_ = std::shared_ptr<control::PIDController>(new control::PIDController(speed_P, speed_I, speed_D));

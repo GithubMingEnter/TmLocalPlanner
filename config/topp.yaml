@@ -14,3 +14,10 @@ v_max: 1.0
 a_max: 0.6
 control_frequency: 20
 is_track: true
+goal_tolerance: 0.1
+lam: 0.025 #1 #0.01  
+c: 0.01  # 前视距离
+speed_P: 1.0
+speed_I: 0.1
+speed_D: 0.0
+

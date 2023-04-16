@@ -4,9 +4,9 @@ interval_sim 100 # simulation timestep in milliseconds
 ## Load a static map
 model(
   name "empty"
-  bitmap "../map/play_stage.pgm"
-  size [ 7.9 4.9 2.000 ]
-  pose [ 0.3 -0.8 0.0 0.000 ] # [ -4.060 -4.040 0.000 0.000 ]
+  bitmap "../map/empty.png"
+  size [ 48.0 24.0 2.0 ]
+  pose [ 20.0 9.0 0.0 0.0 ] # [ -4.060 -4.040 0.000 0.000 ]
   color "gray30"
 )
 ## Definition of a laser range finder
@@ -29,7 +29,7 @@ position(
   wheelbase 0.14 # distance between rear and front axles
   mylaser(pose [ -0.100 0.000 -0.110 0.000 ]) # spawn laser sensor
   #pose [ 8.0 21.5 0.0 0.0 ] # hori start # initial pose (x,y,z,beta[deg]) yaw angle
-  pose [0.0 0  0 0 ]# ver start
+  pose [0.0 -2  0 90 ]# ver start
 )
 
 

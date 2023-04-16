@@ -78,7 +78,7 @@ void TmLocalPlanner::run()
     ref_global_path_.header.stamp = ros::Time::now();
     ref_global_path_.header.frame_id = "map";
 
-    if (b_global_ && !b_traj)
+    if (b_global_ && !b_traj_)
     {
       disp_rviz.ma.markers.clear(); // 清理绘制图形
       ref_global_path_.poses.clear(); //清空
@@ -146,8 +146,8 @@ void TmLocalPlanner::run()
       ROS_WARN_STREAM("Optimal traj time: | time3 --> " << (ros::Time::now() - time1).toSec() * 1000 << " (ms)");
 
       ROS_WARN_STREAM("total generate trajectory time: | total --> " << (ros::Time::now() - a_star_search_time).toSec() * 1000 << " (ms)");
-      // b_traj = true;
-      b_temp=true;
+      b_traj_ = true;
+
       b_global_=false;//reset 
     }
     disp_rviz.send();
@@ -164,7 +164,7 @@ void TmLocalPlanner::controlTimerCallback(const ros::TimerEvent &timer_event)
 {
   ROS_INFO_ONCE("enter controlTimerCallback");
   geometry_msgs::Twist cmd_vel_msg;
-  if (b_vehicle_state && b_traj)
+  if (b_vehicle_state && b_traj_)
   {
     // ROS_INFO_STREAM("TIMES = "<<times_);
     int ret = 0;
@@ -174,14 +174,76 @@ void TmLocalPlanner::controlTimerCallback(const ros::TimerEvent &timer_event)
     // Eigen::Matrix<double, 3, 1> xba;
     // xba.norm()
     ros::Time ts = ros::Time::now();
-    int match_index=QueryNearestPointByPosition(current_state_);
-    double vel_cmd=speed_pid_control(0.5);//(b(match_index));
+    if(reach_goal_){
+      pub_zero();
+      
+    }
+    else{
+      
+      if(norm_double(current_state_.x-goal_pose.pose.position.x,current_state_.y-goal_pose.pose.position.y)<goal_tolerance_)
+      {
+        ROS_INFO_STREAM("Goal reached");
+        reach_goal_=true;
+        pub_zero();
+      }
+      else{
+        
+        double ld=lam_*current_state_.speed+c_;//lam*current_state_.speed+c;//前视距离范围
+
+        // TODO ERROR
+        vector<double> dists;
+        int match_index=QueryNearestPointByPosition(current_state_,dists);
+        //  double min_ind = min_element(dists.begin(),dists.end())-dists.begin(); //返回vector最小元素的下标
+        
+        double match_x=topp2->q(match_index,0);
+        double match_y=topp2->q(match_index,1);
+        double match_yaw=cso->heading1(match_index);
+        double delta_l=PointDistanceSquare(current_state_, match_x, match_y); //norm_double(current_state_.x-match_x,current_state_.y-match_y);//前向距离实际点
+        vector<double> match_array;
+        double alpha;
+        int look_index=0;
+        for(int di=match_index;di<dists.size();di++){
+          if(dists[di]>ld) // && dists[di]<ld
+          {// TODO 终点距离0.3
+            match_array.emplace_back(dists[di]);
+            alpha=cso->heading1(di)-current_state_.yaw;
+            if(abs(alpha)<M_PI/4 ){
+              look_index=di;//update
+              
+              break;
+            }
+          }
+            
+        }
+        if(look_index==0){
+          ROS_INFO("CHECK ");
+        }
+        
+        delta_l=dists[look_index]; 
+        double R=delta_l/(2*sin(alpha));//(match_yaw-current_state_.yaw));
+        double delta=std::atan(wheelbase_length_/R);//std::atan2(wheelbase_length_,);//     atan2(2*wheelbase_length_*sin(alpha),ld);
+        delta=limit_deg(delta,20);
+        delta=std::abs(delta)<0.1 ? 0 :delta;
+        geometry_msgs::Twist cmd_vel_msg;
+        cmd_vel_msg.linear.x = b(look_index);//0.3;//speed_pid_control(0.5);//(b(match_index));
+        infoD("match_index",look_index);
+        infoD(" targetSpeed_ is ",b(look_index));
+        infoD("v error",current_state_.speed);
+        cmd_vel_msg.linear.y = 0;
+        cmd_vel_msg.linear.z = 0;
+        cmd_vel_msg.angular.x = 0;
+        cmd_vel_msg.angular.y = 0;
+        cmd_vel_msg.angular.z = delta;
+        if(is_track_)
+          cmd_vel_pub_.publish(cmd_vel_msg);
+
+      }
+      
+    }
+    
     double angular_cmd;
-    // angular_cmd=head_pid_control(cso->heading1(match_index));
-    stanleyPtr_->ref_state(topp2->q(match_index,0),topp2->q(match_index,1),cso->heading1(match_index));
-    ROS_INFO_STREAM(" EGO HEAD "<<current_state_.yaw) ;
-    stanleyPtr_->ComputeControlCmd(current_state_,angular_cmd);
-    angular_cmd= angular_cmd; //current_state_.speed*tan(angular_cmd)/wheelbase_length_;
+    // ROS_INFO_STREAM(" EGO HEAD "<<current_state_.yaw) ;
+    
 
     ros::Time te = ros::Time::now();
     solve_time = (te - ts).toSec();
@@ -204,16 +266,10 @@ void TmLocalPlanner::controlTimerCallback(const ros::TimerEvent &timer_event)
     // std::cout << "u: " <<state_(3)<<" "<<cmd_msg.speed << std::endl;
 
     // cmd_vel
-    cmd_vel_msg.linear.x = vel_cmd;
-    cmd_vel_msg.linear.y = 0;
-    cmd_vel_msg.linear.z = 0;
 
-    cmd_vel_msg.angular.x = 0;
-    cmd_vel_msg.angular.y = 0;
-    cmd_vel_msg.angular.z = angular_cmd;
-    cmd_vel_pub_.publish(cmd_vel_msg);
 
   }
+  b_vehicle_state=false;//需要新的车辆状态
 }
 
 // void TmlocalPlanner::odomCallback(const nav_msgs::Odometry::ConstPtr& odom_msg)
@@ -222,9 +278,9 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "topp");
   ros::NodeHandle nh, pri_nh("~");
-
-  TmLocalPlanner tm_local_planner(nh, pri_nh);
-  tm_local_planner.run();
+  std::shared_ptr<TmLocalPlanner> tm_local_planner=std::make_shared<TmLocalPlanner>(nh, pri_nh);
+  // TmLocalPlanner tm_local_planner(nh, pri_nh);
+  tm_local_planner->run();
 
   return 0;
 }

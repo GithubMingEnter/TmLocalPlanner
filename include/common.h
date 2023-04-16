@@ -25,6 +25,7 @@ using Emx=Eigen::MatrixXd;
 using Evx=Eigen::VectorXd;
 using Ev2=Eigen::Vector2d;
 using Ev3=Eigen::Vector3d;
+bool need_command_=true;
 typedef struct  
 {
     double x;
@@ -36,7 +37,7 @@ typedef struct
 
 
 // 将角度(弧度制)归化到[-M_PI, M_PI]之间
-double NormalizeAngle(const double angle) {
+inline double NormalizeAngle(const double angle) {
   double a = std::fmod(angle + M_PI, 2.0 * M_PI);
   if (a < 0.0) {
     a += (2.0 * M_PI);
@@ -44,19 +45,19 @@ double NormalizeAngle(const double angle) {
   return a - M_PI;
 }
 
-double deg_to_PI(const double atan2) 
+inline double deg_to_PI(const double atan2) 
 {
     return atan2 * M_PI / 180.0;
 }
-double PI_to_deg(const double atan2) 
+inline double PI_to_deg(const double atan2) 
 {
     return atan2 *  180.0 /  M_PI;
 }
-double norm_double(double dx,double dy)
+inline double norm_double(double dx,double dy)
 {
     return sqrt(dx*dx+dy*dy);
 }
-double limit_deg(double raw_steering_control,double limit_angle){
+inline double limit_deg(double raw_steering_control,double limit_angle){
   if (raw_steering_control >= deg_to_PI(limit_angle))
   {
       raw_steering_control = deg_to_PI(limit_angle);
@@ -66,5 +67,13 @@ double limit_deg(double raw_steering_control,double limit_angle){
       raw_steering_control = -deg_to_PI(limit_angle);
   }
   return raw_steering_control;
+}
+inline void infoD(const std::string str, double data)
+{
+    if (need_command_)
+    {
+
+        ROS_INFO_STREAM(str << " = " << data);
+    }
 }
 #endif
