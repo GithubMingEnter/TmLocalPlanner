@@ -18,8 +18,8 @@
         <param name="use_map_topic"         value="true"/>
         <param name="transform_tolerance"   value="0.5"/>
 	        <param name="initial_pose_x"            value="0"/>
-		<param name="initial_pose_y"            value="0"/>
-		<param name="initial_pose_a"            value="0"/>
+		<param name="initial_pose_y"            value="-2.0"/>
+		<param name="initial_pose_a"            value="1.57"/>
 	</node>
 
 	<!-- <include file="$(find topp)/launch/topp.launch"> 

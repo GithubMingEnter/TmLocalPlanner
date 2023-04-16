@@ -14,6 +14,7 @@ Panels:
         - /Odometry1/Shape1
         - /Map2
         - /hyA_Path1
+        - /topp_path1
       Splitter Ratio: 0.43133047223091125
     Tree Height: 665
   - Class: rviz/Selection
@@ -65,7 +66,7 @@ Visualization Manager:
       Draw Behind: false
       Enabled: true
       Name: Map
-      Topic: /my_map
+      Topic: /map
       Unreliable: false
       Use Timestamp: false
       Value: true
@@ -166,7 +167,7 @@ Visualization Manager:
       Marker Topic: corridor
       Name: Corridor
       Namespaces:
-        {}
+        corridor: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -191,17 +192,17 @@ Visualization Manager:
       Marker Topic: /topp_array
       Name: MarkerArray
       Namespaces:
-        {}
+        topp_test: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /vis_car
       Name: Marker
       Namespaces:
-        car_m: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Angle Tolerance: 0.10000000149011612
       Class: rviz/Odometry
       Covariance:
@@ -313,16 +314,16 @@ Visualization Manager:
       Topic: /traj_delay
       Unreliable: false
       Value: true
-    - Alpha: 0.699999988079071
+    - Alpha: 0.5
       Class: rviz/Map
-      Color Scheme: map
-      Draw Behind: false
-      Enabled: false
+      Color Scheme: costmap
+      Draw Behind: true
+      Enabled: true
       Name: Map
       Topic: /move_base/global_costmap/costmap
       Unreliable: false
       Use Timestamp: false
-      Value: false
+      Value: true
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
@@ -345,6 +346,30 @@ Visualization Manager:
       Shaft Diameter: 0.10000000149011612
       Shaft Length: 0.10000000149011612
       Topic: /move_base/HybridAStarPlanner/plan
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 92; 53; 102
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: topp_path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Queue Size: 10
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /topp_path/traj
       Unreliable: false
       Value: true
   Enabled: true
@@ -384,10 +409,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 105.83305358886719
+      Scale: 118.4990005493164
       Target Frame: <Fixed Frame>
-      X: 1.4468600749969482
-      Y: -1.2005549669265747
+      X: 0.7459208369255066
+      Y: -0.06812793761491776
     Saved:
       - Angle: 0
         Class: rviz/TopDownOrtho

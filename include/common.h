@@ -46,15 +46,25 @@ double NormalizeAngle(const double angle) {
 
 double deg_to_PI(const double atan2) 
 {
-    return atan2 * M_PI / 180;
+    return atan2 * M_PI / 180.0;
 }
 double PI_to_deg(const double atan2) 
 {
-    return atan2 *  180 /  M_PI;
+    return atan2 *  180.0 /  M_PI;
 }
 double norm_double(double dx,double dy)
 {
     return sqrt(dx*dx+dy*dy);
 }
-
+double limit_deg(double raw_steering_control,double limit_angle){
+  if (raw_steering_control >= deg_to_PI(limit_angle))
+  {
+      raw_steering_control = deg_to_PI(limit_angle);
+  }
+  else if (raw_steering_control <= -deg_to_PI(limit_angle))
+  {
+      raw_steering_control = -deg_to_PI(limit_angle);
+  }
+  return raw_steering_control;
+}
 #endif

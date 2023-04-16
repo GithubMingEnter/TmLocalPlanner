@@ -29,7 +29,7 @@ void TmLocalPlanner::run()
   // startGoal.emplace_back(-0.95,0.218,0);
   // startGoal.emplace_back(1.755,-1.533,0);
   // startGoal.emplace_back(0,0,0);
-
+  
   while (ros::ok())
   {
     startGoal.clear();
@@ -74,10 +74,14 @@ void TmLocalPlanner::run()
     // A-star search and opti
     ros::Time a_star_search_time = ros::Time::now();
     // 1.fornt-end path search
+    
+    ref_global_path_.header.stamp = ros::Time::now();
+    ref_global_path_.header.frame_id = "map";
 
     if (b_global_ && !b_traj)
     {
       disp_rviz.ma.markers.clear(); // 清理绘制图形
+      ref_global_path_.poses.clear(); //清空
 
       vis_ptr_->visPath("a_star_final_path", Ev3_path_);
       ROS_WARN_STREAM("A star search time: | time1 --> " << (ros::Time::now() - a_star_search_time).toSec() * 1000 << " (ms)");
@@ -94,8 +98,10 @@ void TmLocalPlanner::run()
       time1 = ros::Time::now();
       astar_path.resize(Ev3_path_.size(), 2);
       Vec dist_grad(2);
+      
       for (int i = 0; i < Ev3_path_.size(); i++)
       {
+      
         astar_path.row(i) = Ev3_path_[i].head(2);
         // corridor_gen->dist_field(astar_path(i,0),astar_path(i,1),&dist_grad);
       }
@@ -114,7 +120,22 @@ void TmLocalPlanner::run()
       
       double result;
       int topp_ret = topp2->solve(result, a, b, c, d);
+      
+      std::cout<<"head = \n";
+      // TODO 最后一项 Nan -1
+      for(int i=0;i<cso->heading1.rows()-1;i++){
+        geometry_msgs::PoseStamped ps;
+        ps.pose.position.x=topp2->q(i,0);
+        ps.pose.position.y=topp2->q(i,1);
+        ps.pose.position.z =cso->heading1(i);
+        std::cout<<cso->heading1(i)<<std::endl;
+        geometry_msgs::Quaternion pose_quat=tf::createQuaternionMsgFromYaw(ps.pose.position.z);  //不适用这种 tf::createQuaternionFromYaw(ps.pose.position.z);
+        ps.pose.orientation=pose_quat;
+        ref_global_path_.poses.emplace_back(ps);
+        
 
+      }
+      
       splineOptDis disp_cso(disp_rviz, *cso);
       disp_cso.add_lbfgs_path_points();
       // disp_cso.add_lbfgs_path();
@@ -126,10 +147,13 @@ void TmLocalPlanner::run()
 
       ROS_WARN_STREAM("total generate trajectory time: | total --> " << (ros::Time::now() - a_star_search_time).toSec() * 1000 << " (ms)");
       // b_traj = true;
-      
+      b_temp=true;
       b_global_=false;//reset 
     }
     disp_rviz.send();
+    if(!ref_global_path_.poses.empty()){
+      global_path_pub_.publish(ref_global_path_);
+    }
     ros::spinOnce();
     loop_rate.sleep();
   }
@@ -151,11 +175,13 @@ void TmLocalPlanner::controlTimerCallback(const ros::TimerEvent &timer_event)
     // xba.norm()
     ros::Time ts = ros::Time::now();
     int match_index=QueryNearestPointByPosition(current_state_);
-    double vel_cmd=speed_pid_control(0.3);//(b(match_index));
-    double angular_cmd=head_pid_control(cso->heading1(match_index));
-    // stanleyPtr_->ref_state(topp2->q(match_index,0),topp2->q(match_index,0),cso->heading1(match_index));
-    // stanleyPtr_->ComputeControlCmd(current_state_,angular_cmd);
-    // angular_cmd= current_state_.speed*angular_cmd/wheelbase_length_;
+    double vel_cmd=speed_pid_control(0.5);//(b(match_index));
+    double angular_cmd;
+    // angular_cmd=head_pid_control(cso->heading1(match_index));
+    stanleyPtr_->ref_state(topp2->q(match_index,0),topp2->q(match_index,1),cso->heading1(match_index));
+    ROS_INFO_STREAM(" EGO HEAD "<<current_state_.yaw) ;
+    stanleyPtr_->ComputeControlCmd(current_state_,angular_cmd);
+    angular_cmd= angular_cmd; //current_state_.speed*tan(angular_cmd)/wheelbase_length_;
 
     ros::Time te = ros::Time::now();
     solve_time = (te - ts).toSec();

@@ -28,8 +28,8 @@ position(
   drive "car" # kinematic model of a car-like robot
   wheelbase 0.14 # distance between rear and front axles
   mylaser(pose [ -0.100 0.000 -0.110 0.000 ]) # spawn laser sensor
-  #pose [ 8.0 21.5 0.0 0.0 ] # hori start # initial pose (x,y,z,beta[deg])
-  pose [ 0 0 0.000 0.000 ]# ver start
+  #pose [ 8.0 21.5 0.0 0.0 ] # hori start # initial pose (x,y,z,beta[deg]) yaw angle
+  pose [0.0 -2  0 90 ]# ver start
 )
 
 

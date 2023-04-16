@@ -13,3 +13,4 @@ wheelbase_length: 0.14
 v_max: 1.0
 a_max: 0.6
 control_frequency: 20
+is_track: true

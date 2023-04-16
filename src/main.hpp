@@ -128,17 +128,21 @@ private:
   bool b_vehicle_state = false; // 获得odom
   bool b_traj = false;          // obtain trajectory
   bool b_global_=false;
+  bool reach_goal_=false;
+  bool is_track_=false;
 
   // ROS
   ros::NodeHandle pri_nh_;
   ros::NodeHandle nh_;
    nav_msgs::Path g_path_;
+   nav_msgs::Path ref_global_path_;
   // Subscribers and Publishers
   ros::Subscriber odom_sub_, goal_sub_,global_path_sub_;
   ros::Subscriber obstacles_sub_;
 
   ros::Publisher current_pose_rviz_pub_, vis_car_pub;
   ros::Publisher cmd_vel_pub_;
+  ros::Publisher global_path_pub_;
   // display
   visualization_msgs::Marker car_m;
 
@@ -165,6 +169,7 @@ private:
   Emx tqxy;
   int t = 0;
   bool b_global_path;
+  bool b_temp;
 
 private:
   void odomCallback(const nav_msgs::Odometry::ConstPtr &odom_msg)
@@ -228,14 +233,84 @@ private:
     current_state_.y = y;
     current_state_.steer = atan(wheelbase_length_ * odom_msg->twist.twist.angular.z / current_state_.speed);
     // ROS_INFO_STREAM("STATE: "<<state_.transpose());
+    
+    if(reach_goal_){
+      pub_zero();
+      
+    }
+    else{
+      if( !ref_global_path_.poses.empty()&&b_temp){
+        if(norm_double(current_state_.x-goal_pose.pose.position.x,current_state_.y-goal_pose.pose.position.y)<0.3)
+        {
+          ROS_INFO_STREAM("Goal reached");
+          reach_goal_=true;
+          pub_zero();
+        }
+        else{
+          double lam = 0.1; // 前视距离系数
+          double c=0.3; // 前视常数
+          double ld=0.4;//lam*current_state_.speed+c;//前视距离范围
+
+          // TODO ERROR
+          vector<double> dists;
+          int match_index=QueryNearestPointByPosition(current_state_,dists);
+          //  double min_ind = min_element(dists.begin(),dists.end())-dists.begin(); //返回vector最小元素的下标
+          
+          double match_x=topp2->q(match_index,0);
+          double match_y=topp2->q(match_index,1);
+          double match_yaw=cso->heading1(match_index);
+          double delta_l=PointDistanceSquare(current_state_, match_x, match_y); //norm_double(current_state_.x-match_x,current_state_.y-match_y);//前向距离实际点
+          vector<double> match_array;
+          double alpha;
+          for(int di=0;di<dists.size();di++){
+            if(dists[di]>ld-0.3 && dists[di]<ld+0.3)
+            {// TODO 终点距离0.3
+              match_array.emplace_back(dists[di]);
+              alpha=cso->heading1(di)-current_state_.yaw;
+              if(abs(alpha)<M_PI/4 ){
+                match_index=di;//update
+                
+                break;
+              }
+            }
+              
+          }
+         
+          delta_l=dists[match_index]; 
+          double R=delta_l/(2*sin(alpha));//为何不是wheel_base
+          double delta=std::atan(wheelbase_length_/R);//std::atan2(wheelbase_length_,);//     atan2(2*wheelbase_length_*sin(alpha),ld);
+          delta=limit_deg(delta,PI_to_deg(1.0));
+          delta=std::abs(delta)<0.1 ? 0 :delta;
+          geometry_msgs::Twist cmd_vel_msg;
+          cmd_vel_msg.linear.x = speed_pid_control(0.5);
+          cmd_vel_msg.linear.y = 0;
+          cmd_vel_msg.linear.z = 0;
+          cmd_vel_msg.angular.x = 0;
+          cmd_vel_msg.angular.y = 0;
+          cmd_vel_msg.angular.z = delta;
+          if(is_track_)
+            cmd_vel_pub_.publish(cmd_vel_msg);
+
+        }
+      }
+    }
 
     ROS_INFO_STREAM_ONCE("LEAVE odomCallback");
     b_vehicle_state = true; // 获取到当前车辆的状态
   };
+
+
+  void pub_zero(){
+    geometry_msgs::Twist twist_z;
+    twist_z.linear.x=0;
+    twist_z.angular.z=0;
+    cmd_vel_pub_.publish(twist_z);
+  }
   /********goalCallback********/
   void goalCallback(const geometry_msgs::PoseStamped::ConstPtr &msg)
   {
     ROS_INFO_STREAM("enter goalCallback");
+    reach_goal_=false; //重置
     goal_pose.header = msg->header;
     goal_pose.pose = msg->pose;
     tf::Quaternion q(msg->pose.orientation.x, msg->pose.orientation.y,
@@ -285,7 +360,26 @@ private:
     int index_min = 0;
     for (size_t i = 1; i < topp2->q.rows(); ++i)
     {
+
       double d_temp = PointDistanceSquare(cur_state, topp2->q(i, 0), topp2->q(i, 1));
+      if (d_temp < d_min)
+      {
+        d_min = d_temp;
+        index_min = i;
+      }
+    }
+    return index_min;
+  }
+  int QueryNearestPointByPosition(const VehicleState &cur_state, vector<double>& dists)
+  {
+    double d_min = PointDistanceSquare(cur_state, topp2->q(0, 0), topp2->q(0, 1));
+    dists.emplace_back(d_min);
+    int index_min = 0;
+    for (size_t i = 1; i < topp2->q.rows(); ++i)
+    {
+
+      double d_temp = PointDistanceSquare(cur_state, topp2->q(i, 0), topp2->q(i, 1));
+      dists.emplace_back(d_temp);
       if (d_temp < d_min)
       {
         d_min = d_temp;
@@ -299,7 +393,7 @@ private:
     double ego_speed = current_state_.speed;
     // 位置误差
     double v_err = targetSpeed - ego_speed; // 速度误差
-    cout << "v_err: " << v_err << "targetSpeed_ is " << targetSpeed << endl;
+    cout << "v_err: " << v_err << " targetSpeed_ is " << targetSpeed << endl;
     double speed_cmd =
         speedPidControllerPtr_->Control(v_err, 1 / control_frequency_);
     return speed_cmd;
@@ -345,13 +439,14 @@ public:
     pri_nh_.param<double>("step_s", step_s_, 0.45);
     pri_nh_.param<double>("c0", c0_, 5);
     pri_nh_.param<double>("c1", c1_, -18);
-    pri_nh_.param<double>("speed_P", speed_P, 0.4); // 读取PID参数
+    pri_nh_.param<double>("speed_P", speed_P, 1.0); // 读取PID参数
     pri_nh_.param<double>("speed_I", speed_I, 0.1);
     pri_nh_.param<double>("speed_D", speed_D, 0.0);
 
     pri_nh_.param<double>("head_P", head_P, 1.0); // 读取PID参数
     pri_nh_.param<double>("head_I", head_I, 0.1);
     pri_nh_.param<double>("head_D", head_D, 0.0);
+    pri_nh_.param<bool>("is_track",is_track_,true);
     pri_nh_.getParam("dt", dt_);
     pri_nh_.getParam("delay", delay_);
     pri_nh_.getParam("nmpc", nmpc_);
@@ -363,7 +458,7 @@ public:
     vis_ptr_ = make_shared<vis::Visualization>(nh_);
     env_ptr_ = make_shared<env::GridMap>(nh_);
     speedPidControllerPtr_ = std::shared_ptr<control::PIDController>(new control::PIDController(speed_P, speed_I, speed_D));
-    headPidControllerPtr_ = std::shared_ptr<control::PIDController>(new control::PIDController(speed_P, speed_I, speed_D));
+    headPidControllerPtr_ = std::shared_ptr<control::PIDController>(new control::PIDController(head_P, head_I, head_D));
     stanleyPtr_ = std::unique_ptr<control::StanleyController>(new control::StanleyController(20)); // TODO限制角度
     stanleyPtr_->LoadControlConf();                                                                // TODO 参数调整
     resolution_ = env_ptr_->getResolution();
@@ -380,6 +475,7 @@ public:
 
     cmd_vel_pub_ = nh_.advertise<geometry_msgs::Twist>(cmd_vel_topic_, 1);
     vis_car_pub = nh_.advertise<visualization_msgs::Marker>("vis_car", 10);
+    global_path_pub_=nh_.advertise<nav_msgs::Path>("/topp_path/traj",1000);
 
     car_m.header.frame_id = "map";
     car_m.header.stamp = ros::Time::now();
