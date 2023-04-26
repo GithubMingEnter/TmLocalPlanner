@@ -4,6 +4,7 @@
 #include <fstream>
 #include <vector>
 #include <iostream>
+#include <iomanip>
 
 #include <ros/ros.h>
 #include <ros/console.h>
@@ -19,6 +20,7 @@
 #include <visualization_msgs/MarkerArray.h>
 
 #include <eigen3/Eigen/Core>
+#include <eigen3/Eigen/Sparse>
 
 using Emx=Eigen::MatrixXd;
 

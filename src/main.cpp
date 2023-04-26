@@ -225,7 +225,7 @@ void TmLocalPlanner::controlTimerCallback(const ros::TimerEvent &timer_event)
         delta=limit_deg(delta,20);
         delta=std::abs(delta)<0.1 ? 0 :delta;
         geometry_msgs::Twist cmd_vel_msg;
-        cmd_vel_msg.linear.x = b(look_index);//0.3;//speed_pid_control(0.5);//(b(match_index));
+        cmd_vel_msg.linear.x = b(look_index)<1e-3? 0.03:b(look_index);//0.3;//speed_pid_control(0.5);//(b(match_index));
         infoD("match_index",look_index);
         infoD(" targetSpeed_ is ",b(look_index));
         infoD("v error",current_state_.speed);

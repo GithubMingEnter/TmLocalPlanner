@@ -201,7 +201,7 @@ struct rviz1DisSimp {
     std_msgs::ColorRGBA cl;
     pl.z = height;
     std::ofstream file;
-    file.open("/home/ming/ros1_workspace/testws/src/topp2/data/dt_v.csv");
+    file.open("/home/lwm/ros1_workspace/tm_local_planner_ws/src/topp2/data/dt_v.csv");
     for (int k = 0; k < path.rows() - 1; ++k) {
       std::cout<< path(k,0) << " "<<path(k,1)<<std::endl;
       pl.x = path(k, 0);

@@ -8,7 +8,7 @@ set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-set(OpenCV_DIR /usr/lib/x86_64-linux-gnu/cmake/opencv4)
+# set(OpenCV_DIR /usr/lib/x86_64-linux-gnu/cmake/opencv)
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   nav_msgs
@@ -19,14 +19,14 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   costmap_2d
   pluginlib
-  OpenCV
+  
   tf
 )
 # SET (TBB_DIR  ${PROJECT_SOURCE_DIR}/TBBConfig.cmake) 
 # find_package(TBB)
 set(QPOASES_INLUDE_DIRS /usr/local/include/qpOASES)
 find_package(osqp REQUIRED)
-
+find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
 catkin_package(
  INCLUDE_DIRS include
@@ -48,6 +48,7 @@ include
   ${EIGEN3_INCLUDE_DIRS}
   ${QPOASES_INLUDE_DIRS}
 )
+message(${OpenCV_INCLUDE_DIRS})
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}

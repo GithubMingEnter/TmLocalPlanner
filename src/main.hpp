@@ -158,6 +158,7 @@ private:
   // TF
   tf2_ros::Buffer tf_buffer_;
   tf2_ros::TransformListener tf_listener_;
+  std::string odom_link_;
 
   geometry_msgs::PoseStamped goal_pose;
   std::vector<Eigen::Vector3d> startGoal;
@@ -185,7 +186,7 @@ private:
     try
     {
       // TODO
-      transform_stamped = tf_buffer_.lookupTransform("map", "odom", ros::Time(0));
+      transform_stamped = tf_buffer_.lookupTransform("map", odom_link_, ros::Time(0));
       //  ('map','base_link',ros::Time(0),ros::Duration(0.1));
     }
     catch (tf2::TransformException &e)
@@ -374,7 +375,8 @@ public:
     pri_nh_.param<std::string>("cmd_vel_topic", cmd_vel_topic_, "/cmd_vel");
     pri_nh_.param<std::string>("current_pose_rviz_topic", current_pose_rviz_topic_, "current_pose_rviz");
     pri_nh_.param<std::string>("global_path_topic", global_path_topic_, "/move_base/HybridAStarPlanner/plan");
-
+    pri_nh_.param<std::string>("odom_link", odom_link_, "/odom");
+  
     pri_nh_.param<double>("wheelbase_length", wheelbase_length_, 0.15);
     pri_nh_.param<double>("v_max", v_max_, 5.0);
     pri_nh_.param<double>("v_min", v_min_, 0.0);

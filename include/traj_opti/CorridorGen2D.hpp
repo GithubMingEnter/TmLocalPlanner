@@ -16,6 +16,7 @@
 #include <map/GridMap.hpp>
 #include <vis/visualization.hpp>
 #include "sdqp/sdqp.hpp"
+#include<common.h>
 using Emx=Eigen::MatrixXd;
 
 using Evx=Eigen::VectorXd;
@@ -102,12 +103,42 @@ typedef struct Rectangle
         center(1) = (vertex(0, 1) + vertex(3, 1)) / 2.0;
         center(2) = 0;
     }   
-    bool isfree(const double x1, const double y1) {
-        x(0) = x1;
-        x(1) = y1;
-        double dxx=(A * x - b).maxCoeff();
-        return dxx > 0;
+    // reutnr 0 在矩形外
+    // return 1 在矩形内
+    // return 2 在交错矩形内,p1与矩形相同,3则p2与包含矩形相同
+
+    int isfree(const double x1, const double y1) {
+        if(x1>vertex(0, 0)&&x1<vertex(1, 0)&&
+           y1<vertex(0, 1)&&y1>vertex(3, 1) ){
+        if(cross_rect!=nullptr){
+            if(x1>cross_rect->vertex(0, 0)&&x1<cross_rect->vertex(1, 0)&&
+           y1<cross_rect->vertex(0, 1)&&y1>cross_rect->vertex(3, 1) ){
+            if(cross_rect->vertex(1, 1)==vertex(1, 1)){
+                std::cout<<"return 2;"<<std::endl;
+                return 2;
+            }
+            else if(cross_rect->vertex(2, 1)==vertex(2, 1))
+               std::cout<<"return 3;"<<std::endl;
+                return 3;
+           }
+        }
+         
+        else{
+        std::cout<<"return 1;"<<std::endl;
+        return 1;
+        }
+        }
+        else{
+            return 0;
+        }
+
+
+        // x(0) = x1;
+        // x(1) = y1;
+        // double dxx=(A * x - b).maxCoeff();
+        // return dxx > 0;
     }
+    
      /*以左下角为起点，逆时针
         p3--------p2   ^ y
         |         |    |
@@ -159,7 +190,7 @@ typedef struct Rectangle
     }    
     double distance(const double x1, const double y1, Evx* grad = nullptr) {
         
-     if (isfree(x1, y1)) {
+     if (isfree(x1, y1)==0) {
         c(0) = -2 * x1;
         c(1) = -2 * y1;
         sdqp::sdqp<2>(Q, c, A, b, x);//SDQP求解
@@ -179,7 +210,7 @@ typedef struct Rectangle
         }
         // std::cout << "[x1:" << x1 << " y1:" << y1 << " x:" << x(0) << " y:" << x(1) << " d:" << d << "]" << std::endl;
         return d;
-     } else {
+     } else if(isfree(x1, y1)==1){
             // double d = 0;
             // if (grad != nullptr) {
             //   grad->operator()(0) = grad->operator()(1) = 0;
@@ -208,9 +239,45 @@ typedef struct Rectangle
             }
 
         return -d;
-        }
+     }else if(isfree(x1, y1)==2){
+        double d=0;
+        if(norm_double(cross_rect->vertex(0,0)-x1,cross_rect->vertex(0,1)-y1)<
+           norm_double(cross_rect->vertex(2,0)-x1,cross_rect->vertex(2,1)-y1) )
+           {
+            d=norm_double(cross_rect->vertex(0,0)-x1,cross_rect->vertex(0,1)-y1);
+            double norm_dxdy=std::max(d,0.01);
+            grad->operator()(0) = -std::abs(cross_rect->vertex(0,0)-x1) / norm_dxdy;//与中心距离的比值，内部 x1-x.
+            grad->operator()(1) = -std::abs(cross_rect->vertex(0,1)-y1) / norm_dxdy;
+           }
+           else{
+            d=norm_double(cross_rect->vertex(2,0)-x1,cross_rect->vertex(2,1)-y1);
+            double norm_dxdy=std::max(d,0.01);
+            grad->operator()(0) = -std::abs(cross_rect->vertex(2,0)-x1) / norm_dxdy;//与中心距离的比值，内部 x1-x.
+            grad->operator()(1) = -std::abs(cross_rect->vertex(2,1)-y1) / norm_dxdy;
+           }
+        return -d;
+        
+     }else if(isfree(x1, y1)==3){
+        double d=0;
+        if(norm_double(cross_rect->vertex(1,0)-x1,cross_rect->vertex(1,1)-y1)<
+           norm_double(cross_rect->vertex(3,0)-x1,cross_rect->vertex(3,1)-y1) )
+           {
+            d=norm_double(cross_rect->vertex(1,0)-x1,cross_rect->vertex(1,1)-y1);
+            double norm_dxdy=std::max(d,0.01);
+            grad->operator()(0) = -std::abs(cross_rect->vertex(1,0)-x1) / norm_dxdy;//与中心距离的比值，内部 x1-x.
+            grad->operator()(1) = -std::abs(cross_rect->vertex(1,1)-y1) / norm_dxdy;
+           }
+           else{
+            d=norm_double(cross_rect->vertex(3,0)-x1,cross_rect->vertex(3,1)-y1);
+            double norm_dxdy=std::max(d,0.01);
+            grad->operator()(0) = -std::abs(cross_rect->vertex(3,0)-x1) / norm_dxdy;//与中心距离的比值，内部 x1-x.
+            grad->operator()(1) = -std::abs(cross_rect->vertex(3,1)-y1) / norm_dxdy;
+           }
+        return -d;
+     }
+     
     }
-        ~Rectangle() {}
+    ~Rectangle() {}
 }
 Rectangle;
 
@@ -257,7 +324,6 @@ public:
 
 };
 
-#include "traj_opti/CorridorGen2D.hpp"
 
 CorridorGen2D::CorridorGen2D(ros::NodeHandle nh,
                              std::shared_ptr<env::GridMap> &envPtr,
@@ -301,11 +367,11 @@ double CorridorGen2D::dist_field(const double x1,const double y1, Evx* grad=null
                 grad->operator()(1)=g1(1);
             }
             
-        // cout <<"update grad "<< grad->operator()(0) << "  " << grad->operator()(1) << endl;
+            cout <<"update grad "<< grad->operator()(0) << "  " << grad->operator()(1) << endl;
 
         }
     }
-        // ROS_INFO_STREAM("----------------D0 ="<<d0);
+        ROS_INFO_STREAM("----------------D0 ="<<d0);
 
     return -d0;
     

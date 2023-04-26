@@ -1,7 +1,8 @@
 <launch>
 
     <!-- 启动二维地图 -->
-    <include file="$(find topp2)/launch/hyA.launch" />
+    <include file="$(find topp2)/launch/real_env/real_hyA.launch" />
+    <include file="$(find topp2)/launch/real_env/amcl_map_real.launch" />
     <!-- <node name="map_server" pkg="map_server" type="map_server" args="$(find topp2)/map/play_stage.yaml" output="screen">
     </node> -->
 
@@ -10,7 +11,7 @@
      <node pkg="topp2" type="main_node" name="main_node" output="screen">
 
        <rosparam file="$(find topp2)/config/topp.yaml" command = "load"/>
-       <param name="odom_link" value="odom"/>
+       <param name="odom_link" value="odom_combined"/>
         <!-- <rosparam file="$(find topp2)/config/mpc_car.yaml" command = "load"/> -->
         <param name="sreach_algorithm" value="0"/>
 
@@ -20,8 +21,9 @@
         <param name="Astar/iter_inter_step" value="2000" /> <!-- if is_debug is true 为了更好的显示，每隔iter_step步，需要键入值以继续 -->
 
     </node> 
+    <node name="map_server" pkg="map_server" type="map_server" args="$(find topp2)/map/c103_1.yaml" />
      <!-- <node name="rviz" pkg="rviz" type="rviz" output="screen" args="-d $(find topp)/launch/rviz_config/rviz_test0.rviz">
     </node> -->
-    <node pkg="rviz" type="rviz" name="$(anon rviz)" respawn="false" output="screen" args="-d $(find topp2)/rviz/topp_search_opti.rviz"/>
+    <node pkg="rviz" type="rviz" name="$(anon rviz)" respawn="false" output="screen" args="-d $(find topp2)/rviz/real_topp_search_opti.rviz"/>
 
 </launch>
