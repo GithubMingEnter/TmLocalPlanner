@@ -138,14 +138,14 @@ private:
   ros::NodeHandle pri_nh_;
   ros::NodeHandle nh_;
    nav_msgs::Path g_path_;
-   nav_msgs::Path ref_global_path_;
+   nav_msgs::Path topp_path_;
   // Subscribers and Publishers
   ros::Subscriber odom_sub_, goal_sub_,global_path_sub_;
   ros::Subscriber obstacles_sub_;
 
   ros::Publisher current_pose_rviz_pub_, vis_car_pub;
   ros::Publisher cmd_vel_pub_;
-  ros::Publisher global_path_pub_;
+  ros::Publisher topp_path_pub_;
   // display
   visualization_msgs::Marker car_m;
 
@@ -186,7 +186,7 @@ private:
     try
     {
       // TODO
-      transform_stamped = tf_buffer_.lookupTransform("map", odom_link_, ros::Time(0));
+      transform_stamped = tf_buffer_.lookupTransform("map", odom_link_, ros::Time(0.1));
       //  ('map','base_link',ros::Time(0),ros::Duration(0.1));
     }
     catch (tf2::TransformException &e)
@@ -430,7 +430,7 @@ public:
 
     cmd_vel_pub_ = nh_.advertise<geometry_msgs::Twist>(cmd_vel_topic_, 1);
     vis_car_pub = nh_.advertise<visualization_msgs::Marker>("vis_car", 10);
-    global_path_pub_=nh_.advertise<nav_msgs::Path>("/topp_path/traj",1000);
+    topp_path_pub_=nh_.advertise<nav_msgs::Path>("/topp_path/traj",1000);
 
     car_m.header.frame_id = "map";
     car_m.header.stamp = ros::Time::now();

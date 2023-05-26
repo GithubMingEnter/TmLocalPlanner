@@ -1,13 +1,13 @@
 <launch>
     <node name="move_base" pkg="topp2" type="test_hyA_node" output="screen">
     <!-- <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen"> -->
-        <rosparam file="$(find topp2)/config/param/costmap_common_params.yaml" command="load" ns="global_costmap" /> 
-        <rosparam file="$(find topp2)/config/param/costmap_common_params.yaml" command="load" ns="local_costmap" />
-        <rosparam file="$(find topp2)/config/param/local_costmap_params.yaml" command="load" />
-        <rosparam file="$(find topp2)/config/param/global_costmap_params.yaml" command="load" /> 
-        <rosparam file="$(find topp2)/config/param/base_local_planner_params.yaml" command="load" />
-        <rosparam file="$(find topp2)/config/param/move_base_params.yaml" command="load" />
-        <rosparam file="$(find topp2)/config/param/plugins.yaml" command="load" ns="/costmap_node/costmap"/>
+        <rosparam file="$(find topp2)/launch/real_env/param/costmap_common_params.yaml" command="load" ns="global_costmap" /> 
+        <rosparam file="$(find topp2)/launch/real_env/param/costmap_common_params.yaml" command="load" ns="local_costmap" />
+        <rosparam file="$(find topp2)/launch/real_env/param/local_costmap_params.yaml" command="load" />
+        <rosparam file="$(find topp2)/launch/real_env/param/global_costmap_params.yaml" command="load" /> 
+        <rosparam file="$(find topp2)/launch/real_env/param/base_local_planner_params.yaml" command="load" />
+        <rosparam file="$(find topp2)/launch/real_env/param/move_base_params.yaml" command="load" />
+        <rosparam file="$(find topp2)/launch/real_env/param/plugins.yaml" command="load" ns="/costmap_node/costmap"/>
         <param name="base_global_planner" value="global_planner/GlobalPlanner" /><!--这个标志是选择使用特定的全局规划器-->
         <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS" />
         <param name="use_hybrid_astar" value="true" />

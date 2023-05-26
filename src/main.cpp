@@ -75,13 +75,13 @@ void TmLocalPlanner::run()
     ros::Time a_star_search_time = ros::Time::now();
     // 1.fornt-end path search
     
-    ref_global_path_.header.stamp = ros::Time::now();
-    ref_global_path_.header.frame_id = "map";
+    topp_path_.header.stamp = ros::Time::now();
+    topp_path_.header.frame_id = "map";
 
     if (b_global_ && !b_traj_)
     {
       disp_rviz.ma.markers.clear(); // 清理绘制图形
-      ref_global_path_.poses.clear(); //清空
+      topp_path_.poses.clear(); //清空
 
       vis_ptr_->visPath("a_star_final_path", Ev3_path_);
       ROS_WARN_STREAM("A star search time: | time1 --> " << (ros::Time::now() - a_star_search_time).toSec() * 1000 << " (ms)");
@@ -131,7 +131,7 @@ void TmLocalPlanner::run()
         std::cout<<cso->heading1(i)<<std::endl;
         geometry_msgs::Quaternion pose_quat=tf::createQuaternionMsgFromYaw(ps.pose.position.z);  //不适用这种 tf::createQuaternionFromYaw(ps.pose.position.z);
         ps.pose.orientation=pose_quat;
-        ref_global_path_.poses.emplace_back(ps);
+        topp_path_.poses.emplace_back(ps);
         
 
       }
@@ -151,8 +151,8 @@ void TmLocalPlanner::run()
       b_global_=false;//reset 
     }
     disp_rviz.send();
-    if(!ref_global_path_.poses.empty()){
-      global_path_pub_.publish(ref_global_path_);
+    if(!topp_path_.poses.empty()){
+      topp_path_pub_.publish(topp_path_);
     }
     ros::spinOnce();
     loop_rate.sleep();

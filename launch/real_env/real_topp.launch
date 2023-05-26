@@ -2,7 +2,7 @@
 
     <!-- 启动二维地图 -->
     <include file="$(find topp2)/launch/real_env/real_hyA.launch" />
-    <include file="$(find topp2)/launch/real_env/amcl_map_real.launch" />
+    <!-- <include file="$(find topp2)/launch/real_env/amcl_map_real.launch" /> -->
     <!-- <node name="map_server" pkg="map_server" type="map_server" args="$(find topp2)/map/play_stage.yaml" output="screen">
     </node> -->
 

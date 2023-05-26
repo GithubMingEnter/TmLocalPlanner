@@ -23,7 +23,7 @@ define mylaser ranger(
 ## Spawn robot
 position(
   name "robot"
-  size [ 0.200 0.180 0.150 ] # (x,y,z) - bounding box of the robot
+  size [0.07 0.07 0.15] # [ 0.200 0.180 0.150 ] # (x,y,z) - bounding box of the robot
   origin [ 0.100 0.000 0.000 0.000] # correct center of rotation (x,y,z,beta)
   drive "car" # kinematic model of a car-like robot
   wheelbase 0.14 # distance between rear and front axles

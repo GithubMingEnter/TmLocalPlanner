@@ -27,6 +27,7 @@ using Emx=Eigen::MatrixXd;
 using Evx=Eigen::VectorXd;
 using Ev2=Eigen::Vector2d;
 using Ev3=Eigen::Vector3d;
+
 bool need_command_=true;
 typedef struct  
 {

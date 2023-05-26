@@ -1,8 +1,3 @@
-// Reconstruction of the origin conic ALM TOPP algorithm
-// with the simplication of unnecessary matrix operations
-// and minor fixes in ALM algorithm steps
-// V0.1.5 20220831, tkalpha
-
 #ifndef CONIC_ALM_TOPP_HPP
 #define CONIC_ALM_TOPP_HPP
 
@@ -13,19 +8,17 @@
 #include <vector>
 
 #include "lbfgs/lbfgs_new.hpp"
+#include "../common.h"
 
-typedef Eigen::Matrix3d Mat3;
-typedef Eigen::Vector3d Vec3;
-typedef Eigen::MatrixXd Mat;
-typedef Eigen::VectorXd Vec;
-typedef Eigen::SparseMatrix<double> SpMat;
+using SpMat = Eigen::SparseMatrix<double>;
 
-struct conicALMTOPP2 {
+struct conicALMTOPP2
+{
   // path information
-  Vec& s;
-  Mat& q;
-  Mat& qv;
-  Mat& qa;
+  Evx &s;  // 弧长
+  Emx &q;  // (x,y)
+  Emx &qv; // v
+  Emx &qa;
   int mode;
   double a_max;
   double v_max;
@@ -33,32 +26,33 @@ struct conicALMTOPP2 {
   double v_end;
 
   // variables for conic alm algorithm
-  Vec c;
+  Evx c; // 锥约束
   std::vector<SpMat> As;
-  std::vector<Vec3> bs;
-  SpMat Aieq;
+  std::vector<Ev3> bs;
+  SpMat Aieq; // 不等式约束
   SpMat Aieq_transpose;
-  Vec bieq;
-  SpMat G;
+  Evx bieq; // Aieq*x<=bieq
+  SpMat G;  // 等式约束
   SpMat G_transpose;
-  Vec h;
-  double value;
-  Vec x0;
-  int pts, dim;
-  int idx_a, idx_b, idx_c, idx_d;
-  int dim_a, dim_b, dim_c, dim_d;
+  Evx h;                          // Gx=h
+  double value;                   // 目标函数值
+  Evx x0;                         // 初始优化变量
+  int pts, dim;                   // s.size()
+  int idx_a, idx_b, idx_c, idx_d; // 参数索引
+  int dim_a, dim_b, dim_c, dim_d; // 参数维度
 
   // ALM algorithm variables
-  std::vector<Vec3> mius;
-  Vec eta;
-  Vec lambda;
-  Vec zeros_ieq;
+  std::vector<Ev3> mius; // u
+  Evx eta;
+  Evx lambda;
+  Evx zeros_ieq;
 
   // L-BFGS parameters
   lbfgs::lbfgs_parameter_t pl2;
 
   // ALM algorithm parameters
-  struct alm_param {
+  struct alm_param
+  {
     double alm_rho = 1.0;
     double alm_beta = 1e3;
     double alm_gamma = 1.0;
@@ -70,11 +64,10 @@ struct conicALMTOPP2 {
     int alm_iter_display = 1;
   } pa2;
 
-  conicALMTOPP2(Vec& _s, Mat& _q, Mat& _qv, Mat& _qa, double _a_max,
+  conicALMTOPP2(Evx &_s, Emx &_q, Emx &_qv, Emx &_qa, double _a_max,
                 double _v_max, double _v_start, double _v_end)
       : s(_s),
         q(_q),
-        //TODO INITIAL
         qv(_qv),
         qa(_qa),
         mode(0),
@@ -83,15 +76,17 @@ struct conicALMTOPP2 {
         v_start(_v_start),
         v_end(_v_end),
         value(0),
-        pl2(lbfgs::lbfgs_parameter_t()) {
+        pl2(lbfgs::lbfgs_parameter_t())
+  {
     generate_topp_matrices();
     generate_alm_variables();
   }
 
   // basic matrices for topp socp problem
-  int generate_topp_matrices() {
-    pts = s.size();//?
-    dim = 4 * pts - 2;//TODO
+  int generate_topp_matrices()
+  {
+    pts = s.size();    // 控制点个数
+    dim = 4 * pts - 2; //
     idx_a = 3 * pts - 1;
     idx_b = 0;
     idx_c = pts;
@@ -99,34 +94,36 @@ struct conicALMTOPP2 {
     dim_a = pts - 1;
     dim_b = pts;
     dim_c = pts;
-    dim_d = pts - 1;//K-1
+    dim_d = pts - 1; // K-1
     // goal
 
-    x0 = Vec::Zero(dim);
-    c = Vec::Zero(dim);
-    for (int k = 0; k < dim_d; ++k) {
+    x0 = Evx::Zero(dim);
+    c = Evx::Zero(dim);
+    for (int k = 0; k < dim_d; ++k)
+    {
       c(idx_d + k) = 2 * (s(k + 1) - s(k));
     }
     // cones
     As.clear();
     bs.clear();
-    for (int k = 0; k < dim_d; ++k) {
+    for (int k = 0; k < dim_d; ++k)
+    {
       SpMat A(3, dim);
       A.setZero();
-      Vec3 b(Vec3::Zero());
+      Ev3 b(Ev3::Zero());
       b(1) = 2;
-      //x,y二维
       A.insert(0, idx_c + k) = A.insert(0, idx_c + k + 1) = 1;
-      A.insert(0, idx_d + k) = 1;//？-1
+      A.insert(0, idx_d + k) = 1; // ？-1
       A.insert(2, idx_c + k) = A.insert(2, idx_c + k + 1) = 1;
       A.insert(2, idx_d + k) = -1;
       As.push_back(A);
       bs.push_back(b);
     }
-    for (int k = 0; k < dim_b; ++k) {
+    for (int k = 0; k < dim_b; ++k)
+    {
       SpMat A(3, dim);
       A.setZero();
-      Vec3 b(Vec3::Zero());
+      Ev3 b(Ev3::Zero());
       b(0) = 1;
       b(2) = -1;
       A.insert(1, idx_c + k) = 2;
@@ -136,43 +133,50 @@ struct conicALMTOPP2 {
     }
     // inequality
     int num_ieq = 3 * dim_b + 4 * dim_a;
-    Aieq.resize(num_ieq, dim);//ieq express inequality
+    Aieq.resize(num_ieq, dim); // ieq express inequality
     Aieq.setZero();
-    bieq = Vec::Zero(num_ieq);
+    bieq = Evx::Zero(num_ieq);
     int pos = 0;
-    for (int k = 0; k < dim_b; ++k) {
-      Aieq.insert(pos + k, idx_b + k) = -1;//-bk<=0
+    for (int k = 0; k < dim_b; ++k)
+    {
+      Aieq.insert(pos + k, idx_b + k) = -1; //-bk<=0
     }
     pos += dim_b;
-    for (int k = 0; k < dim_b; ++k) {
-      Aieq.insert(pos + k, idx_b + k) = std::pow(qv(k, 0), 2);//q'(sk)^2<=v_max
+    for (int k = 0; k < dim_b; ++k)
+    {
+      Aieq.insert(pos + k, idx_b + k) = std::pow(qv(k, 0), 2); // q'(sk)^2<=v_max
       bieq(pos + k) = std::pow(v_max, 2);
     }
     pos += dim_b;
-    for (int k = 0; k < dim_b; ++k) {
-      Aieq.insert(pos + k, idx_b + k) = std::pow(qv(k, 1), 2);//
+    for (int k = 0; k < dim_b; ++k)
+    {
+      Aieq.insert(pos + k, idx_b + k) = std::pow(qv(k, 1), 2); //
       bieq(pos + k) = std::pow(v_max, 2);
     }
     pos += dim_b;
-    for (int k = 0; k < dim_a; ++k) {
+    for (int k = 0; k < dim_a; ++k)
+    {
       Aieq.insert(pos + k, idx_b + k) = qa(k, 0);
       Aieq.insert(pos + k, idx_a + k) = qv(k, 0);
       bieq(pos + k) = a_max;
     }
     pos += dim_a;
-    for (int k = 0; k < dim_a; ++k) {
-      Aieq.insert(pos + k, idx_b + k) = -qa(k, 0);//a_x
+    for (int k = 0; k < dim_a; ++k)
+    {
+      Aieq.insert(pos + k, idx_b + k) = -qa(k, 0); // a_x
       Aieq.insert(pos + k, idx_a + k) = -qv(k, 0);
       bieq(pos + k) = a_max;
     }
     pos += dim_a;
-    for (int k = 0; k < dim_a; ++k) {
-      Aieq.insert(pos + k, idx_b + k) = qa(k, 1);///a_y
+    for (int k = 0; k < dim_a; ++k)
+    {
+      Aieq.insert(pos + k, idx_b + k) = qa(k, 1); /// a_y
       Aieq.insert(pos + k, idx_a + k) = qv(k, 1);
       bieq(pos + k) = a_max;
     }
     pos += dim_a;
-    for (int k = 0; k < dim_a; ++k) {
+    for (int k = 0; k < dim_a; ++k)
+    {
       Aieq.insert(pos + k, idx_b + k) = -qa(k, 1);
       Aieq.insert(pos + k, idx_a + k) = -qv(k, 1);
       bieq(pos + k) = a_max;
@@ -181,15 +185,16 @@ struct conicALMTOPP2 {
     int num_eq = dim_a + 2;
     G.resize(num_eq, dim);
     G.setZero();
-    h = Vec::Zero(num_eq);
+    h = Evx::Zero(num_eq);
     pos = 0;
-    for (int k = 0; k < dim_a; ++k) {
-      G.insert(pos + k, idx_b + k) = 1;//bk
-      G.insert(pos + k, idx_b + k + 1) = -1;//b_k+1
+    for (int k = 0; k < dim_a; ++k)
+    {
+      G.insert(pos + k, idx_b + k) = 1;      // bk
+      G.insert(pos + k, idx_b + k + 1) = -1; // b_k+1
       G.insert(pos + k, idx_a + k) = 2 * (s(k + 1) - s(k));
     }
     pos += dim_a;
-    G.insert(pos, idx_b) = qv.row(0).squaredNorm();//mat数据类型第0行平方求和
+    G.insert(pos, idx_b) = qv.row(0).squaredNorm(); // mat数据类型第0行平方求和
     h(pos) = std::pow(v_start, 2);
     G.insert(pos + 1, idx_b + dim_b - 1) = qv.row(dim_b - 1).squaredNorm();
     h(pos + 1) = std::pow(v_end, 2);
@@ -200,30 +205,38 @@ struct conicALMTOPP2 {
   }
 
   // initialize ALM variables
-  int generate_alm_variables() {
+  int generate_alm_variables()
+  {
     mius.clear();
     int n_cones = As.size();
-    //todo
-    // mius.resize(n_cones,Vec3::Zero());
-    for (int k = 0; k < n_cones; ++k) {
-      mius.push_back(Vec3::Zero());
+    // todo
+    //  mius.resize(n_cones,Ev3::Zero());
+    for (int k = 0; k < n_cones; ++k)
+    {
+      mius.push_back(Ev3::Zero());
     }
-    eta = Vec::Zero(Aieq.rows());
-    lambda = Vec::Zero(G.rows());
-    zeros_ieq = Vec::Zero(Aieq.rows());//？
+    eta = Evx::Zero(Aieq.rows());
+    lambda = Evx::Zero(G.rows());
+    zeros_ieq = Evx::Zero(Aieq.rows()); // ？
     return 0;
   }
 
   // function to generate projection on 3d second order cone
-  //TODO-可以去看关于普分解
-  int get_conic3_prj(const Vec3& v, Vec3& prj) {
+  // TODO-可以去看关于普分解
+  int get_conic3_prj(const Ev3 &v, Ev3 &prj)
+  {
     double v0 = v(0);
     double v1_norm = std::sqrt(v(1) * v(1) + v(2) * v(2));
-    if (v0 <= -v1_norm) {
-      prj = Vec3::Zero();
-    } else if (v0 >= v1_norm) {
+    if (v0 <= -v1_norm)
+    {
+      prj = Ev3::Zero();
+    }
+    else if (v0 >= v1_norm)
+    {
       prj = v;
-    } else {
+    }
+    else
+    {
       double c = (v0 + v1_norm) / v1_norm / 2;
       prj(0) = c * v1_norm;
       prj(1) = c * v(1);
@@ -233,65 +246,70 @@ struct conicALMTOPP2 {
   }
 
   // objective function of conic ALM
-  static double obj_fcn_alm(void* ptr_obj, const Vec& x, Vec& grad) {
-    conicALMTOPP2& p = *(reinterpret_cast<conicALMTOPP2*>(ptr_obj));
+  static double obj_fcn_alm(void *ptr_obj, const Evx &x, Evx &grad)
+  {
+    conicALMTOPP2 &p = *(reinterpret_cast<conicALMTOPP2 *>(ptr_obj));
 
     double rho = p.pa2.alm_rho;
-    Vec& c = p.c;
-    std::vector<SpMat>& As = p.As;
-    std::vector<Vec3>& bs = p.bs;
-    SpMat& Aieq = p.Aieq;
-    SpMat& Aieq_transpose = p.Aieq_transpose;
-    Vec& bieq = p.bieq;
-    SpMat& G = p.G;
-    SpMat& G_transpose = p.G_transpose;
-    Vec& h = p.h;
+    Evx &c = p.c;
+    std::vector<SpMat> &As = p.As;
+    std::vector<Ev3> &bs = p.bs;
+    SpMat &Aieq = p.Aieq;
+    SpMat &Aieq_transpose = p.Aieq_transpose;
+    Evx &bieq = p.bieq;
+    SpMat &G = p.G;
+    SpMat &G_transpose = p.G_transpose;
+    Evx &h = p.h;
 
-    std::vector<Vec3>& mius = p.mius;
-    Vec& eta = p.eta;
-    Vec& lambda = p.lambda;
-    Vec& zeros_ieq = p.zeros_ieq;//最后一项
+    std::vector<Ev3> &mius = p.mius;
+    Evx &eta = p.eta;
+    Evx &lambda = p.lambda;
+    Evx &zeros_ieq = p.zeros_ieq; // 最后一项
 
-    double value = c.dot(x);//目标函数
+    double value = c.dot(x); // 目标函数 x->d^k
     grad = c;
 
-    Vec3 prj;
+    Ev3 prj;
     double value_cone = 0;
     int n_cones = As.size();
-    for (int k = 0; k < n_cones; ++k) {
-      //1/p(u)
+    for (int k = 0; k < n_cones; ++k)
+    {
+      // 1/p(u)
       p.get_conic3_prj((1.0 / rho) * mius[k] - As[k] * x - bs[k], prj);
       value_cone += 0.5 * rho * prj.squaredNorm();
-      grad -= rho * As[k].transpose() * prj;//A->锥
+      grad -= rho * As[k].transpose() * prj; // A->锥
     }
 
-    Vec res_ieq = ((1.0 / rho) * eta + Aieq * x - bieq).cwiseMax(zeros_ieq);
+    Evx res_ieq = ((1.0 / rho) * eta + Aieq * x - bieq).cwiseMax(zeros_ieq);
     double value_ieq = 0.5 * rho * res_ieq.squaredNorm();
-    grad += rho * Aieq_transpose * res_ieq;//不等式
+    grad += rho * Aieq_transpose * res_ieq; // 不等式
 
-    Vec res_eq = (1.0 / rho) * lambda + G * x - h;
+    Evx res_eq = (1.0 / rho) * lambda + G * x - h;
     double value_eq = 0.5 * rho * res_eq.squaredNorm();
-    grad += rho * G_transpose * res_eq;//等式
+    grad += rho * G_transpose * res_eq; // 等式
 
     value = value + value_cone + value_ieq + value_eq;
     return value;
   }
 
   // get ALM error
-  double get_alm_error(const Vec& x, double& err_cons, double& err_prec) {
-    Vec grad;
+  double get_alm_error(const Evx &x, double &err_cons, double &err_prec)
+  {
+    Evx grad;
     value = obj_fcn_alm(this, x, grad);
-    //std::cout << " [d]:" << x.segment(idx_d, dim_d).transpose() << std::endl;
+    // std::cout << " [d]:" << x.segment(idx_d, dim_d).transpose() << std::endl;
     double x_inf_norm = std::max(1.0, x.cwiseAbs().maxCoeff());
     double grad_inf_norm = grad.cwiseAbs().maxCoeff();
     double err_cone = 0;
-    Vec3 prj;
+    Ev3 prj;
     int n_cones = As.size();
-    for (int k = 0; k < n_cones; ++k) {
+    for (int k = 0; k < n_cones; ++k)
+    {
       get_conic3_prj((1.0 / pa2.alm_rho) * mius[k] - As[k] * x - bs[k], prj);
       double err_cone1 =
           ((1.0 / pa2.alm_rho) * mius[k] - prj).cwiseAbs().maxCoeff();
-      if (err_cone1 > err_cone) err_cone = err_cone1;
+      if (err_cone1 > err_cone)
+        err_cone = err_cone1;
     }
     double err_ieq = ((-1.0 / pa2.alm_rho) * eta)
                          .cwiseMax(Aieq * x - bieq)
@@ -305,23 +323,26 @@ struct conicALMTOPP2 {
   }
 
   // ALM solving process
-  int alm_solve(Vec& x1, double& value1, alm_param& pa,
-                lbfgs::lbfgs_parameter_t pl) {
+  int alm_solve(Evx &x1, double &value1, alm_param &pa,
+                lbfgs::lbfgs_parameter_t pl)
+  {
     pa2 = pa;
     pl2 = pl;
-    int n_cones = As.size();//std::vector<SpMat> As;
-    for (int k = 0; k < n_cones; ++k) {
+    int n_cones = As.size(); 
+    for (int k = 0; k < n_cones; ++k)
+    {
       mius[k].setZero();
     }
     eta.setZero();
     lambda.setZero();
-    Vec x = x1;
+    Evx x = x1;
     int lbfgs_ret, valid = 1;
     int alm_count = 0;
     double value;
     double err_cons, err_prec;
     value = get_alm_error(x, err_cons, err_prec);
-    while (err_cons > pa2.alm_epsilon_cons || err_prec > pa2.alm_epsilon_prec) {
+    while (err_cons > pa2.alm_epsilon_cons || err_prec > pa2.alm_epsilon_prec)
+    {
       // lbfgs inner layer optimize
       pl2.g_epsilon =
           std::max(std::pow(pa2.alm_xi, alm_count), pa2.alm_xi_min) *
@@ -331,21 +352,24 @@ struct conicALMTOPP2 {
           lbfgs::lbfgs_optimize(x, value, obj_fcn_alm, nullptr, this, pl2);
       // alm value update
       int n_cones = As.size();
-      for (int k = 0; k < n_cones; ++k) {
+      for (int k = 0; k < n_cones; ++k)
+      {
         get_conic3_prj(mius[k] - pa2.alm_rho * (As[k] * x + bs[k]), mius[k]);
       }
       eta = (eta + pa2.alm_rho * (Aieq * x - bieq)).cwiseMax(zeros_ieq);
       lambda += pa2.alm_rho * (G * x - h);
       // conditions udate
       value = get_alm_error(x, err_cons, err_prec);
-      if (pa2.alm_iter_display > 0) {
+      if (pa2.alm_iter_display > 0)
+      {
         std::cout << "ALM iter: " << alm_count << " rho:" << pa2.alm_rho
                   << " lbfgs:" << lbfgs_ret << " ALM obj:" << value
                   << " err_cons:" << err_cons << " err_prec:" << err_prec
                   << std::endl;
       }
-      if ((lbfgs_ret != 0 && lbfgs_ret != 1) || alm_count > pa2.alm_iter_max) {
-        valid = 0;//无效
+      if ((lbfgs_ret != 0 && lbfgs_ret != 1) || alm_count > pa2.alm_iter_max)
+      {
+        valid = 0; // 无效
         break;
       }
       // alm rho update
@@ -358,11 +382,12 @@ struct conicALMTOPP2 {
   }
 
   // solve interface
-  int solve(double& value, Vec& xa, Vec& xb, Vec& xc, Vec& xd) {
-    // x0.segment(idx_a, dim_a) = Vec::Zero(dim_a);
-    // x0.segment(idx_b, dim_b) = Vec::Ones(dim_b);
-    // x0.segment(idx_c, dim_c) = Vec::Ones(dim_c);
-    // x0.segment(idx_d, dim_d) = Vec::Ones(dim_d) * 0.5;
+  int solve(double &value, Evx &xa, Evx &xb, Evx &xc, Evx &xd)
+  {
+    // x0.segment(idx_a, dim_a) = Evx::Zero(dim_a);
+    // x0.segment(idx_b, dim_b) = Evx::Ones(dim_b);
+    // x0.segment(idx_c, dim_c) = Evx::Ones(dim_c);
+    // x0.segment(idx_d, dim_d) = Evx::Ones(dim_d) * 0.5;
     x0.setZero();
     conicALMTOPP2::alm_param pa;
     lbfgs::lbfgs_parameter_t pl;
@@ -372,8 +397,9 @@ struct conicALMTOPP2 {
     return topp_ret;
   }
 
-  // get result 
-  int get_result(Vec& xa, Vec& xb, Vec& xc, Vec& xd){
+  // get result
+  int get_result(Evx &xa, Evx &xb, Evx &xc, Evx &xd)
+  {
     xa = x0.segment(idx_a, dim_a);
     xb = x0.segment(idx_b, dim_b);
     xc = x0.segment(idx_c, dim_c);
@@ -382,4 +408,4 @@ struct conicALMTOPP2 {
     return 0;
   }
 };
-#endif  // CONIC_ALM_TOPP_HPP
+#endif // CONIC_ALM_TOPP_HPP

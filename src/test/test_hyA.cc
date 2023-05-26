@@ -36,7 +36,7 @@ class TestPlanner{
 
             std::cout << "creat the global costmap" << std::endl;
             //指定costmap中的base_link为起始坐标
-            robot_pose.header.frame_id = "base_link";  
+            robot_pose.header.frame_id = "base_footprint";  
                                             
             transformStarPose();
             try
@@ -86,7 +86,7 @@ class TestPlanner{
         bool transformStarPose(void){
             try
             {
-                start_transform = tf.lookupTransform("map", "base_link", ros::Time(0), ros::Duration(3.0));
+                start_transform = tf.lookupTransform("map", "base_footprint", ros::Time(0), ros::Duration(3.0));
             }
             catch(const std::exception& e)
             {

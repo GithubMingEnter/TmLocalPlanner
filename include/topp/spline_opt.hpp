@@ -3,38 +3,38 @@
 #include <eigen3/Eigen/Sparse>
 #include <iomanip>
 #include <iostream>
-
+#include "../common.h"
 #include "lbfgs/lbfgs_new.hpp"
 #include "scene/scene_base.hpp"
 #include "traj_opti/CorridorGen2D.hpp"
-
+Emx x;
 typedef Eigen::SparseMatrix<double> SpMat;
 
 struct cubicSplineOpt
 {
-  // basic information
+  // basic inforEmxion
   shared_ptr<CorridorGen2D> Corridor_;
-  Mat &path0;
+  Emx &path0;
   double step;
-  Mat points0;
-  Mat points1;
-  Mat param1;
+  Emx points0;
+  Emx points1;
+  Emx param1;
   int segs0;
 
   // variables for spline generation
   Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Upper> solver;
   SpMat A, B, C, M, E, F;
-  Mat d_D_d_p, d_c_d_p, d_d_d_p;
+  Emx d_D_d_p, d_c_d_p, d_d_d_p;
 
   // parameters for risk field
   double c0, c1;
 
   // variables for TOPP
-  Vec s1;
-  Vec heading1;
-  Mat q1, qv1, qa1;
+  Evx s1;
+  Evx heading1;
+  Emx q1, qv1, qa1;
 
-  cubicSplineOpt(shared_ptr<CorridorGen2D> _scene, Mat &_path, double _step, double _c0 = 200, double _c1 = -10)
+  cubicSplineOpt(shared_ptr<CorridorGen2D> _scene, Emx &_path, double _step, double _c0 = 200, double _c1 = -10)
       : Corridor_(_scene), path0(_path), step(_step), c0(_c0), c1(_c1)
   {
     generate_inital_cubic_spline_points(step);
@@ -52,7 +52,7 @@ struct cubicSplineOpt
     int num_est = static_cast<int>((std::floor(len0 / s) + 1) * 1.5); // 1。5？
 
     int num = 0;
-    Mat points02(num_est, 2);
+    Emx points02(num_est, 2);
     points02.row(num++) = path0.row(0);
     double residual = 0;
     for (int k = 1; k < path0.rows(); ++k)
@@ -82,10 +82,10 @@ struct cubicSplineOpt
     return 0;
   }
 
-  // generate static matrices for initial cubic spline points
+  // generate static Emxrices for initial cubic spline points
   int generate_static_matrices()
   {
-    A = SpMat(segs0 - 1, segs0 - 1); // SparseMatrix
+    A = SpMat(segs0 - 1, segs0 - 1); // SparseEmxrix
     B = SpMat(segs0 - 1, segs0 - 1);
     for (int i = 0; i < segs0 - 2; ++i)
     {
@@ -132,7 +132,7 @@ struct cubicSplineOpt
   }
 
   // convert path points to cubic spline coefficients
-  int path_to_coeff(const Mat &path, Vec &coeff)
+  int path_to_coeff(const Emx &path, Evx &coeff)
   {
     int num = path.rows();
     coeff.resize(num * 2 - 4);
@@ -146,7 +146,7 @@ struct cubicSplineOpt
 
   // convert cubic spline coefficients to  path points
 
-  int coeff_to_path(const Vec &coeff, const Mat &path0, Mat &path)
+  int coeff_to_path(const Evx &coeff, const Emx &path0, Emx &path)
   {
     int num = path0.rows();
     path.resize(num, 2);
@@ -161,17 +161,17 @@ struct cubicSplineOpt
   }
 
   // convert path points to cubic spline parameters
-  int path_to_param(const Mat &path, Mat &param)
+  int path_to_param(const Emx &path, Emx &param)
   {
     int segs = path.rows() - 1;
-    Vec Dx(Vec::Zero(segs + 1));
-    Vec Dy(Vec::Zero(segs + 1));
+    Evx Dx(Evx::Zero(segs + 1));
+    Evx Dy(Evx::Zero(segs + 1));
     param.resize(segs, 8);
     // 可参考三次样条的构造
     Dx.segment(1, segs - 1) = 3 * solver.solve(path.block(2, 0, segs - 1, 1) -
-                                               path.block(0, 0, segs - 1, 1));
+                                              path.block(0, 0, segs - 1, 1));
     Dy.segment(1, segs - 1) = 3 * solver.solve(path.block(2, 1, segs - 1, 1) -
-                                               path.block(0, 1, segs - 1, 1));
+                                              path.block(0, 1, segs - 1, 1));
     for (int i = 0; i < segs; ++i)
     {
       param(i, 0) = path(i, 0);
@@ -187,7 +187,7 @@ struct cubicSplineOpt
   }
 
   // convert cubic spline parameters to interpolated points
-  int param_to_interpolated(const Mat &param, Mat interp, int segs)
+  int param_to_interpolated(const Emx &param, Emx interp, int segs)
   {
     int end = segs * param.rows();
     interp.resize(end + 1, 2);
@@ -207,19 +207,19 @@ struct cubicSplineOpt
     return 0;
   }
 
-  int param_to_q(const Mat &param, Vec &s, Mat &q, Mat &qv, Mat &qa, Vec &headings, int segs)
+  int param_to_q(const Emx &param, Evx &s, Emx &q, Emx &qv, Emx &qa, Evx &headings, int segs)
   {
     int num = param.rows();
     int pts = num * segs + 1;
     auto cubic_x = [&param](int i, double t)
     {
       return param(i, 0) + param(i, 1) * t + param(i, 2) * t * t +
-             param(i, 3) * t * t * t; // 三次样条表达式关于一维x
+            param(i, 3) * t * t * t; // 三次样条表达式关于一维x
     };
     auto cubic_y = [&](int i, double t)
     {
       return param(i, 4) + param(i, 5) * t + param(i, 6) * t * t +
-             param(i, 7) * t * t * t; // 二维y
+            param(i, 7) * t * t * t; // 二维y
     };
     auto dx_dt = [&](int i, double t)
     {
@@ -292,38 +292,38 @@ struct cubicSplineOpt
   }
 
   // cost function for optimization methods
-  static double cost_function(void *ptr, const Vec &x, Vec &g)
+  static double cost_function(void *ptr, const Evx &x, Evx &g)
   {
     cubicSplineOpt *opt = reinterpret_cast<cubicSplineOpt *>(ptr); // 强制转换三次样条
     int segs = opt->segs0;                                         // 初始化段数
     double cost_energy;
     double cost_potential;
-    Vec g_energy(x.size());
-    Vec g_potential(x.size());
-    Mat path, param;
+    Evx g_energy(x.size());
+    Evx g_potential(x.size());
+    Emx path, param;
     // coeff👈的是三次样条所对应的路径点的x,y大小
     opt->coeff_to_path(x, opt->points0, path);
 
     opt->path_to_param(path, param);
-    Vec cx = param.col(2);
-    Vec dx = param.col(3);
-    Vec cy = param.col(6);
-    Vec dy = param.col(7);
+    Evx cx = param.col(2);
+    Evx dx = param.col(3);
+    Evx cy = param.col(6);
+    Evx dy = param.col(7);
 
     // scretch energy goal
     cost_energy = 12 * dx.dot(dx) + 12 * cx.dot(dx) + 4 * cx.dot(cx) +
                   12 * dy.dot(dy) + 12 * cy.dot(dy) + 4 * cy.dot(cy);
 
-    Vec d_energy_d_x = (12 * dx + 8 * cx).transpose() * opt->d_c_d_p +
-                       (24 * dx + 12 * cx).transpose() * opt->d_d_d_p;
-    Vec d_energy_d_y = (12 * dy + 8 * cy).transpose() * opt->d_c_d_p +
-                       (24 * dy + 12 * cy).transpose() * opt->d_d_d_p;
+    Evx d_energy_d_x = (12 * dx + 8 * cx).transpose() * opt->d_c_d_p +
+                      (24 * dx + 12 * cx).transpose() * opt->d_d_d_p;
+    Evx d_energy_d_y = (12 * dy + 8 * cy).transpose() * opt->d_c_d_p +
+                      (24 * dy + 12 * cy).transpose() * opt->d_d_d_p;
     g_energy.head(segs - 1) = d_energy_d_x;
     g_energy.tail(segs - 1) = d_energy_d_y;
 
     // distance risk goal
     cost_potential = 0;
-    Vec dist_grad(2);
+    Evx dist_grad(2);
     for (int i = 1; i < segs; ++i)
     {
       double x1 = path(i, 0);
@@ -368,7 +368,7 @@ struct cubicSplineOpt
   int path_opt_lbfgs()
   {
     double final_cost;
-    Vec coeff;
+    Evx coeff;
     path_to_coeff(points0, coeff);
     int ret = 0;
     lbfgs::lbfgs_parameter_t lbfgs_param;

@@ -9,11 +9,12 @@ step_s: 0.3
 c0: 5.0
 c1: -18.0
 
-wheelbase_length: 0.14
+wheelbase_length: 0.04
 v_max: 1.0
 a_max: 0.6
 control_frequency: 20
-is_track: true
+is_track: false
+
 goal_tolerance: 0.1
 lam: 0.025 #1 #0.01  
 c: 0.01  # 前视距离
