@@ -178,7 +178,7 @@ class MpcTracking():
         rate = rospy.Rate(10)  # 10 hz
         
         while not rospy.is_shutdown():
-            # self.getrobotpose()
+            self.getrobotpose()
             # 实际采用odom_combine获取
             if self.record_path and self.odom_get:
                 self.odom_get=False
@@ -186,7 +186,7 @@ class MpcTracking():
                 px=self.rp[0]+self.crv*np.cos(self.rp[2])*0.1
                 py=self.rp[1]+self.crw*np.sin(self.rp[2])*0.1
                 psi=self.rp[2]+self.crw*0.1
-                if (self.rp[0] - self.Goal[0])** 2 + (self.rp[1] - self.Goal[1])** 2 < 0.1:
+                if ((self.rp[0] - self.Goal[0])** 2 + (self.rp[1] - self.Goal[1])** 2) < 0.1:
                     self.record_path = False
                     self.pub_Command(0,0)
                 self.rp[0]=px
@@ -233,13 +233,13 @@ class MpcTracking():
         print("enter odom")
         self.crv=data.twist.twist.linear.x
         self.crw = data.twist.twist.angular.z
-        self.rp[0] = data.pose.pose.position.x
-        self.rp[1] = data.pose.pose.position.y
-        (r, p, y) = tf.transformations.euler_from_quaternion([
-                    data.pose.pose.orientation.x, data.pose.pose.orientation.y,
-                    data.pose.pose.orientation.z, data.pose.pose.orientation.w])
+        # self.rp[0] = data.pose.pose.position.x
+        # self.rp[1] = data.pose.pose.position.y
+        # (r, p, y) = tf.transformations.euler_from_quaternion([
+        #             data.pose.pose.orientation.x, data.pose.pose.orientation.y,
+        #             data.pose.pose.orientation.z, data.pose.pose.orientation.w])
                     
-        self.rp[2] = y
+        # self.rp[2] = y
         print("self.rp = ")
         print(self.rp)
         self.odom_get=True
