@@ -18,6 +18,7 @@ class TestPlanner{
          */
         TestPlanner(tf2_ros::Buffer &_tf):
         tf(_tf){
+            n.param<std::string>("base_link_frame",base_link_frame_,"base_link");
             //订阅目标主题，绑定响应函数,这里使用suscribe订阅目标点，当目标点刷新就重新进行路径规划
             make_plane = n.subscribe("/move_base_simple/goal", 1, &TestPlanner::setgoal, this);
             //定义类插件的名称，以便之后接入系统
@@ -36,7 +37,7 @@ class TestPlanner{
 
             std::cout << "creat the global costmap" << std::endl;
             //指定costmap中的base_link为起始坐标
-            robot_pose.header.frame_id = "base_footprint";  
+            robot_pose.header.frame_id = base_link_frame_;  
                                             
             transformStarPose();
             try
@@ -82,11 +83,12 @@ class TestPlanner{
          * @brief   Transform the Start pose from tf tree 将起始点从TF转化树中提取出来(测试程序将bese_link作为起始点提取)
          * 
          */
-        std::string frame="map";
+        std::string origin_frame="map";
+        std::string base_link_frame_="base_link";
         bool transformStarPose(void){
             try
             {
-                start_transform = tf.lookupTransform("map", "base_footprint", ros::Time(0), ros::Duration(3.0));
+                start_transform = tf.lookupTransform("map", base_link_frame_, ros::Time(0), ros::Duration(3.0));
             }
             catch(const std::exception& e)
             {

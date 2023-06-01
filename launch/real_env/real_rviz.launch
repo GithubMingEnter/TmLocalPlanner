@@ -1,0 +1,4 @@
+<launch>
+    <node pkg="rviz" type="rviz" name="$(anon rviz)" respawn="false" output="screen" args="-d $(find topp2)/rviz/real_topp_search_opti.rviz"/>
+</launch>
+

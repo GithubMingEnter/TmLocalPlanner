@@ -71,6 +71,12 @@
 轨迹跟踪
 `~/ros1_workspace/tm_local_planner_ws/src/topp2/launch/real_env$ python real_diff_mpc.py `
 
+键盘遥控
+```bash
+roslaunch wheeltec_robot_rc keyboard_teleop.launch
+```
+
+
 
 停止命令
 ``` bash

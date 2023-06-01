@@ -1,5 +1,6 @@
 <launch>
     <node name="move_base" pkg="topp2" type="test_hyA_node" output="screen">
+    
     <!-- <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen"> -->
         <rosparam file="$(find topp2)/launch/real_env/param/costmap_common_params.yaml" command="load" ns="global_costmap" /> 
         <rosparam file="$(find topp2)/launch/real_env/param/costmap_common_params.yaml" command="load" ns="local_costmap" />
@@ -11,6 +12,8 @@
         <param name="base_global_planner" value="global_planner/GlobalPlanner" /><!--这个标志是选择使用特定的全局规划器-->
         <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS" />
         <param name="use_hybrid_astar" value="true" />
+        <param name="base_link_frame" value="base_footprint"/>
+        
     </node>
     
 </launch>

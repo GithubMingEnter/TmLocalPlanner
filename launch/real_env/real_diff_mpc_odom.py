@@ -74,10 +74,10 @@ def plot_durations(cwps,prex,prey):
         display.clear_output(wait=True)
         display.display(plt.gcf())
 
-N=36 # forward predict steps
+N=19 # 实际受算例影响修改forward predict steps
 ns=5 # state num /x,y,psi: f(x) differential,cte横向偏差,epsi 航向偏差
 na=2# out put number /steering angle omega
-max_v=1.0
+
 
 class MPC(object):
     def __init__(self):
@@ -86,9 +86,9 @@ class MPC(object):
         m.uk=RangeSet(0,N-2)
         m.uk1=RangeSet(0,N-3)
                 
-        m.wg= Param(RangeSet(0,4),initialize={0:1.,1:10.,2:100.,3:1000,4:1000},mutable=True)#mutable表示是可变的参数
+        m.wg= Param(RangeSet(0,4),initialize={0:1.,1:10.,2:100.,3:1000,4:3000},mutable=True)#mutable表示是可变的参数
         m.dt=Param(initialize=0.05,mutable=True)#?
-        m.ref_v=Param(initialize=max_v,mutable=True)
+        m.ref_v=Param(initialize=0.2,mutable=True)
         m.ref_cte=Param(initialize=0.0,mutable=True)
         m.ref_epsi=Param(initialize=0.0,mutable=True)
         m.s0 =Param(RangeSet(0,ns-1),initialize={0:0.,1:0.,2:0.,4:0.},mutable=True)
@@ -98,7 +98,7 @@ class MPC(object):
         m.s =Var(RangeSet(0,ns-1),m.sk)#state variable
         m.f=Var(m.sk)
         m.psides=Var(m.sk)
-        m.uv=Var(m.uk,bounds=(-0.1,max_v))#bound velocity
+        m.uv=Var(m.uk,bounds=(-0.1,0.2))#bound velocity
         m.uw=Var(m.uk,bounds=(-0.5,0.5))
 
         #update
@@ -161,14 +161,16 @@ class MpcTracking():
         self.odom=rospy.get_param('~odom',default='/odom')
 
         self.listener=tf.TransformListener()
-        rospy.Subscriber(self.odom,Odometry,self.odomCallback)
+        rospy.Subscriber(self.odom, Odometry, self.odomCallback)
+        
+        
         self.pub_refpath=rospy.Publisher("/ref_path",Path,queue_size=1)
         self.pub_prepath=rospy.Publisher("/pre_path",Path,queue_size=1)
         self.pub_cmd=rospy.Publisher(self.cme_vel,Twist,queue_size=10)
 
         self.record_path = True
         self.odom_get = False
-        self.use_txt_path = False
+        self.use_txt_path = True
         self.Goal = np.zeros(3)
         self.Goal[0] = x[-1]
         self.Goal[1] = y[-1]
@@ -176,20 +178,20 @@ class MpcTracking():
         print(self.Goal)
         if self.use_txt_path==False: #如果不使用订阅的轨迹
             rospy.Subscriber(track_path_topic, Path, self.pathCallback)
-            self.record_path=False
+            record_path=False
             self.Goal=np.zeros(3)
-        self.rp = np.zeros(3)
-        self.sub_wpstree = [] #初始化
+        self.rp=np.zeros(3)
         self.crv=0.0
         self.crw=0.0
         self.mpc=MPC()
         rate = rospy.Rate(10)  # 10 hz
-        cwps=np.zeros((5,2)) # note 5是可以改动的参数
+        
         while not rospy.is_shutdown():
-            self.getrobotpose()
+            # self.getrobotpose()
+            # 实际采用odom_combine获取
             if self.record_path and self.odom_get:
                 self.odom_get = False
-                
+                cwps=np.zeros((5,2)) # note 5是可以改动的参数
                 if self.use_txt_path==False:
                     cwps = self.sub_getcwps(self.rp[0:2])
                 elif self.use_txt_path == True:
@@ -242,23 +244,22 @@ class MpcTracking():
         self.rp[2] = y
 
     def odomCallback(self, data):
-        
+        print("enter odom")
         self.crv=data.twist.twist.linear.x
         self.crw = data.twist.twist.angular.z
-        # self.rp[0] = data.pose.pose.position.x
-        # self.rp[1] = data.pose.pose.position.y
-        # (r, p, y) = tf.transformations.euler_from_quaternion([
-        #             data.pose.pose.orientation.x, data.pose.pose.orientation.y,
-        #             data.pose.pose.orientation.z, data.pose.pose.orientation.w])
+        self.rp[0] = data.pose.pose.position.x
+        self.rp[1] = data.pose.pose.position.y
+        (r, p, y) = tf.transformations.euler_from_quaternion([
+                    data.pose.pose.orientation.x, data.pose.pose.orientation.y,
+                    data.pose.pose.orientation.z, data.pose.pose.orientation.w])
                     
-        # self.rp[2] = y
+        self.rp[2] = y
         print("self.rp = ")
         print(self.rp)
         self.odom_get=True
 
             
     def pathCallback(self, data):
-        print("enter pathCallback")
         if self.record_path == False:
             path_array = data.poses
             path_points_x = np.zeros(len(path_array)) # no np.zeros((len(path_array),1))
@@ -266,8 +267,7 @@ class MpcTracking():
             for i in range(len(path_array)):
                 path_points_x[i] = path_array[i].pose.position.x
                 path_points_y[i] = path_array[i].pose.position.y
-            self.Goal[0] = path_points_x[-1]
-            self.Goal[1]= path_points_y[-1]
+            self.Goal = [path_points_x[-1], path_points_y[-1]]
             print(self.Goal) 
             path_t = np.linspace(0, 1, num=len(path_points_x))
             fx = interp1d(path_t, path_points_x, kind='cubic')
@@ -288,6 +288,7 @@ class MpcTracking():
         cwps = np.zeros((5, 2))  # ?
         for i in range(5):
             cwps[i] = self.nwps[(nindex + i) % len(self.nwps)]
+            
         return cwps
 
         
