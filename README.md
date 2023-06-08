@@ -1,17 +1,55 @@
+# 环境配置
+
+ros安装
+osqp安装
+qpOASES安装
+hybrid A*代码 :https://github.com/dengpw/hybrid_astar_planner
 
 
 # run
-仿真环境
+## 仿真环境
 `roslaunch topp2 simulation.launch `
 轨迹规划与跟踪控制
 `roslaunch topp2 topp.launch`
 
 ## 实验环境
+位于real_env分支
 
 底层节点
 `roslaunch turn_on_wheeltec_robot topp_remote.launch  `
 
 
+
+轨迹规划
+
+`roslaunch topp2 real_topp.launch `
+
+
+轨迹跟踪
+`topp2/launch/real_env$ python real_diff_mpc.py `
+
+键盘遥控
+```bash
+roslaunch wheeltec_robot_rc keyboard_teleop.launch
+```
+
+
+
+停止命令
+``` bash
+$ rostopic pub /cmd_vel geometry_msgs/Twist "linear:
+  x: 0.0
+  y: 0.0
+  z: 0.0
+angular:
+  x: 0.0
+  y: 0.0
+
+
+```
+
+
+topp_remote.launch
 ```xml
 <launch>
 <!-- 使用cartography建图注意 -->
@@ -62,32 +100,3 @@
 
 
 ```
-
-轨迹规划
-
-`roslaunch topp2 real_topp.launch `
-
-
-轨迹跟踪
-`~/ros1_workspace/tm_local_planner_ws/src/topp2/launch/real_env$ python real_diff_mpc.py `
-
-键盘遥控
-```bash
-roslaunch wheeltec_robot_rc keyboard_teleop.launch
-```
-
-
-
-停止命令
-``` bash
-$ rostopic pub /cmd_vel geometry_msgs/Twist "linear:
-  x: 0.0
-  y: 0.0
-  z: 0.0
-angular:
-  x: 0.0
-  y: 0.0
-
-
-```
-

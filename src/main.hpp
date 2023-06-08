@@ -14,8 +14,8 @@ date: 2023.4.5
 #include "ros1_disp/spline_opt_dis.hpp"
 #include "ros1_disp/topp_dis.hpp"
 #include "scene/scene_astar.hpp"
-#include "topp/spline_opt.hpp"
-#include "topp/conic_alm_topp.hpp"
+#include "topp/cubic_opt.hpp"
+#include "topp/conic_alm_topp_opt.hpp"
 #include "common.h"
 #include <tf2/buffer_core.h>
 #include "tmTypes.h"

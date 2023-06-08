@@ -2,7 +2,7 @@
 #define SPLINE_OPT_DIS_01
 
 #include "rviz_dis.hpp"
-#include "topp/spline_opt.hpp"
+#include "topp/cubic_opt.hpp"
 #include <fstream>
 struct splineOptDis{
   cubicSplineOpt& cso;

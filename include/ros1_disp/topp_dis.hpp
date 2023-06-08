@@ -4,7 +4,7 @@
 #include <fstream>
 
 #include "rviz_dis.hpp"
-#include "topp/conic_alm_topp.hpp"
+#include "topp/conic_alm_topp_opt.hpp"
 
 struct conicAlmToppDis {
   conicALMTOPP2& topp2;
