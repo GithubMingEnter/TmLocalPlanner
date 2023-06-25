@@ -12,18 +12,22 @@ osqp安装 [**osqp.org**](https://osqp.org/)
 qpOASES安装
 https://zhuanlan.zhihu.com/p/433639446
 
-hybrid A*代码 :https://github.com/dengpw/hybrid_astar_planner
+hybrid A*代码 https://github.com/dengpw/hybrid_astar_planner
 
 
 # run
 ## 仿真环境
+运行
+
 `roslaunch topp2 simulation.launch `
+
 轨迹规划与跟踪控制
+
 `roslaunch topp2 topp.launch`
 
 在play.world中修改相关参数
 
-也可与teb算法对比
+也可与teb算法对比，compare文件夹下
 
 
 ## 实验环境
@@ -31,6 +35,7 @@ hybrid A*代码 :https://github.com/dengpw/hybrid_astar_planner
 
 底层节点
 这里采用的是WHEELTEC的akm小车，自己写的一个启动文件
+
 `roslaunch turn_on_wheeltec_robot topp_remote.launch  `
 
 
@@ -41,6 +46,7 @@ hybrid A*代码 :https://github.com/dengpw/hybrid_astar_planner
 
 
 轨迹跟踪
+
 `topp2/launch/real_env$ python real_diff_mpc.py `
 也可以采用pure_pursuit跟踪，在topp.yaml中将is_track设为true
 mpc跟踪要准确一点,要注意路径的配置
