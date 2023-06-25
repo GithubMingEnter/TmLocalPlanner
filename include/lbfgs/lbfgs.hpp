@@ -1,5 +1,4 @@
 // [Homework 2 - Part 1] LBFGS algorithm design
-// V0.0.1 20220721 tkalpha
 
 #ifndef LBFGS_HPP
 #define LBFGS_HPP

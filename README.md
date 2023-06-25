@@ -1,8 +1,17 @@
+
+更新链接，https://github.com/GithubMingEnter/TmLocalPlanner/tree/real_env
+欢迎star
+
 # 环境配置
 
 ros安装
-osqp安装
+
+osqp安装 [**osqp.org**](https://osqp.org/)
+[https://blog.csdn.net/whuzhang16/article/details/111508384](https://blog.csdn.net/whuzhang16/article/details/111508384)
+
 qpOASES安装
+https://zhuanlan.zhihu.com/p/433639446
+
 hybrid A*代码 :https://github.com/dengpw/hybrid_astar_planner
 
 
@@ -12,10 +21,16 @@ hybrid A*代码 :https://github.com/dengpw/hybrid_astar_planner
 轨迹规划与跟踪控制
 `roslaunch topp2 topp.launch`
 
+在play.world中修改相关参数
+
+也可与teb算法对比
+
+
 ## 实验环境
 位于real_env分支
 
 底层节点
+这里采用的是WHEELTEC的akm小车，自己写的一个启动文件
 `roslaunch turn_on_wheeltec_robot topp_remote.launch  `
 
 
@@ -27,6 +42,8 @@ hybrid A*代码 :https://github.com/dengpw/hybrid_astar_planner
 
 轨迹跟踪
 `topp2/launch/real_env$ python real_diff_mpc.py `
+也可以采用pure_pursuit跟踪，在topp.yaml中将is_track设为true
+mpc跟踪要准确一点,要注意路径的配置
 
 键盘遥控
 ```bash
@@ -100,3 +117,12 @@ topp_remote.launch
 
 
 ```
+# 数据处理
+data文件夹下文件，
+在下面库中进行绘图
+https://github.com/GithubMingEnter/data-graph-matlab-/settings
+
+# ref
+https://github.com/tk166/Shenlan_Numerical-Optimization_in_Robotics
+
+https://github.com/dengpw/hybrid_astar_planner

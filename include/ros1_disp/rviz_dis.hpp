@@ -1,5 +1,5 @@
 // class to draw in rviz 1
-// V0.0.1 20220825 tkalpha
+
 #ifndef RVIZ_DIS_01
 #define RVIZ_DIS_01
 #include <ros/ros.h>
